@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: microvm-viewer
+  labels:
+    {{- include "lambda-vm-ack-operator.labels" . | nindent 4 }}
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+  - apiGroups: ["lambda.aws.amazon.com"]
+    resources: ["microvms", "microvmpools", "microvmtemplates", "microvmnetworks"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["lambda.aws.amazon.com"]
+    resources: ["microvms/status", "microvmpools/status"]
+    verbs: ["get"]

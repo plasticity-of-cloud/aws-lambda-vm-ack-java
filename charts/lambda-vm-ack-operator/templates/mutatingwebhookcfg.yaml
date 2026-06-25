@@ -1,0 +1,26 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ include "lambda-vm-ack-operator.fullname" . }}-mutating
+  labels:
+    {{- include "lambda-vm-ack-operator.labels" . | nindent 4 }}
+  {{- if .Values.webhook.certManager.enabled }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "lambda-vm-ack-operator.fullname" . }}-webhook-cert
+  {{- end }}
+webhooks:
+  - name: mutate.microvms.lambda.aws.amazon.com
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Ignore
+    clientConfig:
+      service:
+        name: {{ include "lambda-vm-ack-operator.fullname" . }}-webhook
+        namespace: {{ .Release.Namespace }}
+        path: /mutate-microvm
+        port: 443
+    rules:
+      - apiGroups: ["lambda.aws.amazon.com"]
+        apiVersions: ["v1alpha1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["microvms"]

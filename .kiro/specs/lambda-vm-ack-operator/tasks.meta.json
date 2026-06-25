@@ -15,6 +15,14 @@
     "2.9 Write property test: Unknown Fields Preserved (Property 10)": {
       "status": "passed",
       "lastRunTimestamp": 1782388944032
+    },
+    "6.4 Write property test: Webhook Range Validation (Property 4)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782389598305
+    },
+    "6.5 Write property test: Webhook Mutation Defaults (Property 5)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782389599278
     }
   },
   "executionHistory": {}

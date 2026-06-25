@@ -30,6 +30,9 @@ resources:
 webhook:
   certManager:
     enabled: true
+    issuerRef:
+      name: selfsigned-issuer
+      kind: ClusterIssuer
 
 metrics:
   enabled: true
