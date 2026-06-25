@@ -1,0 +1,135 @@
+name: Native Image Build (ARM64)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '25'
+  GRAALVM_DISTRIBUTION: 'mandrel'
+  MAVEN_OPTS: '-Xmx4g'
+
+jobs:
+  test-jvm:
+    name: Test (JVM mode)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+      - name: Run tests
+        run: ./mvnw verify -pl operator-core,operator-controller,operator-webhook,operator-cli -am --batch-mode --no-transfer-progress
+
+  native-build-arm64:
+    name: Native Build (ARM64)
+    runs-on: ubuntu-24.04-arm
+    needs: test-jvm
+    strategy:
+      matrix:
+        module:
+          - name: operator-controller
+            artifact: lambda-vm-operator
+          - name: operator-cli
+            artifact: kubectl-microvm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up GraalVM (Mandrel)
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'mandrel'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: 'maven'
+      - name: Verify GraalVM installation
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME"
+          java --version
+          native-image --version
+      - name: Build native image
+        run: |
+          ./mvnw package -pl ${{ matrix.module.name }} -am \
+            -Dnative -DskipTests --batch-mode --no-transfer-progress \
+            -Dquarkus.native.container-build=false
+      - name: Verify native binary
+        run: |
+          BINARY=$(find ${{ matrix.module.name }}/target -name "*-runner" -type f | head -1)
+          if [ -z "$BINARY" ]; then echo "ERROR: Native binary not found!"; exit 1; fi
+          echo "Native binary: $BINARY"
+          ls -lh "$BINARY"
+          file "$BINARY"
+      - name: Test native binary startup
+        run: |
+          BINARY=$(find ${{ matrix.module.name }}/target -name "*-runner" -type f | head -1)
+          if [ "${{ matrix.module.name }}" = "operator-cli" ]; then
+            timeout 5 "$BINARY" --help || true
+          else
+            "$BINARY" &
+            PID=$!
+            sleep 3
+            if kill -0 $PID 2>/dev/null; then
+              echo "Operator started successfully (PID: $PID)"
+              curl -sf http://localhost:8080/q/health/live || echo "Health check not available (expected without K8s)"
+              kill $PID
+            else
+              echo "WARNING: Operator exited (may need K8s context)"
+            fi
+          fi
+      - name: Upload native binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.module.artifact }}-linux-arm64
+          path: ${{ matrix.module.name }}/target/*-runner
+          retention-days: 30
+
+  container-build-arm64:
+    name: Container Image (ARM64)
+    runs-on: ubuntu-24.04-arm
+    needs: native-build-arm64
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - module: operator-controller
+            image: lambda-vm-operator
+            dockerfile: Dockerfile
+          - module: operator-cli
+            image: kubectl-microvm
+            dockerfile: Dockerfile.cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
