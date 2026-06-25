@@ -34,11 +34,10 @@
             <artifactId>quarkus-jackson</artifactId>
         </dependency>
 
-        <!-- Fabric8 Kubernetes Client -->
+        <!-- Quarkus Kubernetes Client extension (provides CDI-managed KubernetesClient) -->
         <dependency>
-            <groupId>io.fabric8</groupId>
-            <artifactId>kubernetes-client</artifactId>
-            <version>${fabric8.version}</version>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-kubernetes-client</artifactId>
         </dependency>
 
         <!-- Jackson YAML format -->
@@ -82,15 +81,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <systemPropertyVariables>
-                        <java.util.logging.manager combine.self="override"/>
-                    </systemPropertyVariables>
-                </configuration>
             </plugin>
         </plugins>
     </build>
