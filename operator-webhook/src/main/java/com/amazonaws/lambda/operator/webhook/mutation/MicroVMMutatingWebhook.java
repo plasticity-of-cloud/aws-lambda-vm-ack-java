@@ -32,9 +32,33 @@ public class MicroVMMutatingWebhook {
 
     private final ObjectMapper objectMapper;
 
+    /**
+     * No-arg constructor for unit testing.
+     */
+    public MicroVMMutatingWebhook() {
+        this.objectMapper = null;
+    }
+
     @Inject
     public MicroVMMutatingWebhook(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Applies default values to a MicroVMSpec for fields that are not set.
+     * This method is extracted for unit testability.
+     *
+     * @param spec the MicroVMSpec to apply defaults to
+     * @return the spec with defaults applied (same object, mutated in place)
+     */
+    public MicroVMSpec applyDefaults(MicroVMSpec spec) {
+        if (spec.getTimeoutSeconds() == null) {
+            spec.setTimeoutSeconds(DEFAULT_TIMEOUT_SECONDS);
+        }
+        if (spec.getMemoryMB() == null) {
+            spec.setMemoryMB(DEFAULT_MEMORY_MB);
+        }
+        return spec;
     }
 
     @POST

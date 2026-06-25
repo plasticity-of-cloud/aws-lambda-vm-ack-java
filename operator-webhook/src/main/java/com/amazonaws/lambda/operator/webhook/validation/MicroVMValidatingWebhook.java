@@ -43,10 +43,40 @@ public class MicroVMValidatingWebhook {
     private final KubernetesClient kubernetesClient;
     private final ObjectMapper objectMapper;
 
+    /**
+     * No-arg constructor for unit testing (spec-level validation only).
+     */
+    public MicroVMValidatingWebhook() {
+        this.kubernetesClient = null;
+        this.objectMapper = null;
+    }
+
     @Inject
     public MicroVMValidatingWebhook(KubernetesClient kubernetesClient, ObjectMapper objectMapper) {
         this.kubernetesClient = kubernetesClient;
         this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Validates a MicroVMSpec and returns a list of validation errors.
+     * This method performs spec-level validation (memory, vcpus, runtime, timeout)
+     * without requiring Kubernetes client access.
+     *
+     * @param spec      the MicroVMSpec to validate
+     * @param namespace the namespace context (used for logging only in this overload)
+     * @return list of validation error messages; empty if valid
+     */
+    public List<String> validate(MicroVMSpec spec, String namespace) {
+        List<String> errors = new ArrayList<>();
+        if (spec == null) {
+            errors.add("spec is required");
+            return errors;
+        }
+        validateMemory(spec, errors);
+        validateVcpus(spec, errors);
+        validateRuntime(spec, errors);
+        validateTimeout(spec, errors);
+        return errors;
     }
 
     @POST
