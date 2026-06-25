@@ -14,6 +14,20 @@
     <name>Lambda VM ACK Operator - Core</name>
     <description>CRD model classes, enums, and state machine logic - zero Kubernetes/framework dependencies</description>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager combine.self="override"/>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <!-- Jackson for JSON/YAML serialization -->
         <dependency>

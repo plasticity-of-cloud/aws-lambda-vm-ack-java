@@ -1,0 +1,21 @@
+{
+  "pbtResults": {
+    "2.6 Write property test: CRD Serialization Round Trip (Property 1)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782388941322
+    },
+    "2.7 Write property test: State Transition Validity (Property 2)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782388942227
+    },
+    "2.8 Write property test: Invalid State Transitions Rejected (Property 3)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782388943237
+    },
+    "2.9 Write property test: Unknown Fields Preserved (Property 10)": {
+      "status": "passed",
+      "lastRunTimestamp": 1782388944032
+    }
+  },
+  "executionHistory": {}
+}
