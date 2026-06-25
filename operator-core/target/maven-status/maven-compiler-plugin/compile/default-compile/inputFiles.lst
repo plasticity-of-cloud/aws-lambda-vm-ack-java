@@ -1,0 +1,16 @@
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/enums/DesiredState.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/enums/MicroVMState.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/enums/Runtime.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/Condition.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/MicroVM.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/MicroVMNetwork.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/MicroVMNetworkSpec.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/MicroVMPool.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/MicroVMPoolSpec.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/MicroVMPoolStatus.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/MicroVMSpec.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/MicroVMStatus.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/MicroVMTemplate.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/model/MicroVMTemplateSpec.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/state/MicroVMStateMachine.java
+/projects/sandbox/aws-lambda-vm-ack-java/operator-core/src/main/java/com/amazonaws/lambda/operator/core/state/StateTransitionResult.java
