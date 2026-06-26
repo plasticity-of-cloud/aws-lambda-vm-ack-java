@@ -16,11 +16,11 @@ AWS IAM Setup:
     aws eks create-pod-identity-association \
       --cluster-name <CLUSTER> \
       --namespace {{ .Release.Namespace }} \
-      --service-account lambda-vm-operator \
+      --service-account kube-microvm-operator \
       --role-arn arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
 
   Option 2 - IRSA:
-    kubectl annotate serviceaccount lambda-vm-operator \
+    kubectl annotate serviceaccount kube-microvm-operator \
       -n {{ .Release.Namespace }} \
       eks.amazonaws.com/role-arn=arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
     # Or reinstall with: --set serviceAccount.irsaRoleArn=arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>

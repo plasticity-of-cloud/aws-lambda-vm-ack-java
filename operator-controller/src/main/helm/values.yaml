@@ -1,5 +1,5 @@
 serviceAccount:
-  # For IRSA: set to the IAM role ARN (e.g. arn:aws:iam::123456789012:role/lambda-vm-operator)
+  # For IRSA: set to the IAM role ARN (e.g. arn:aws:iam::123456789012:role/kube-microvm-operator)
   # For EKS Pod Identity (recommended): leave empty and create a PodIdentityAssociation via EKS console/API
   irsaRoleArn: ""
 

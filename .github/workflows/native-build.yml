@@ -37,7 +37,7 @@ jobs:
       matrix:
         module:
           - name: operator-controller
-            artifact: lambda-vm-operator
+            artifact: kube-microvm-operator
           - name: operator-cli
             artifact: kubectl-microvm
     steps:
@@ -101,7 +101,7 @@ jobs:
       matrix:
         include:
           - module: operator-controller
-            image: lambda-vm-operator
+            image: kube-microvm-operator
             dockerfile: Dockerfile
           - module: operator-cli
             image: kubectl-microvm
@@ -166,10 +166,10 @@ jobs:
       - name: Add custom templates and re-package
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          CHART_DIR=operator-controller/target/helm/kubernetes/lambda-vm-operator
+          CHART_DIR=operator-controller/target/helm/kubernetes/kube-microvm-operator
           # Replace generated serviceaccount.yaml with custom (IRSA-aware) and add webhook/networkpolicy
           cp operator-controller/src/main/helm/templates/*.yaml ${CHART_DIR}/templates/
-          rm -f ${CHART_DIR}/../lambda-vm-operator-${VERSION}.tar.gz
+          rm -f ${CHART_DIR}/../kube-microvm-operator-${VERSION}.tar.gz
           helm package ${CHART_DIR} --version ${VERSION} --app-version ${VERSION} \
             --destination operator-controller/target/helm/kubernetes/
       - name: Login to GHCR
@@ -181,13 +181,13 @@ jobs:
       - name: Push Helm chart to GHCR OCI
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          helm push operator-controller/target/helm/kubernetes/lambda-vm-operator-${VERSION}.tar.gz \
+          helm push operator-controller/target/helm/kubernetes/kube-microvm-operator-${VERSION}.tar.gz \
             oci://ghcr.io/${{ github.repository_owner }}/helm
       - name: Upload Helm chart artifact
         uses: actions/upload-artifact@v4
         with:
           name: helm-charts
-          path: operator-controller/target/helm/kubernetes/lambda-vm-operator-*.tar.gz
+          path: operator-controller/target/helm/kubernetes/kube-microvm-operator-*.tar.gz
           retention-days: 1
 
   release:
@@ -226,5 +226,5 @@ jobs:
           generate_release_notes: true
           files: |
             dist/kubectl-microvm-linux-arm64
-            dist/lambda-vm-operator-*.tar.gz
+            dist/kube-microvm-operator-*.tar.gz
             dist/checksums.sha256

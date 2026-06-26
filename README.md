@@ -29,10 +29,10 @@ Built with **Quarkus**, **JOSDK**, and **GraalVM native image** (Java 25).
 ./mvnw package -pl operator-cli -Pnative -DskipTests
 
 # Helm chart install (from GHCR OCI)
-helm install lambda-vm-operator oci://ghcr.io/plasticity-of-cloud/helm/lambda-vm-operator
+helm install kube-microvm-operator oci://ghcr.io/plasticity-of-cloud/helm/kube-microvm-operator
 
 # With IRSA
-helm install lambda-vm-operator oci://ghcr.io/plasticity-of-cloud/helm/lambda-vm-operator \
+helm install kube-microvm-operator oci://ghcr.io/plasticity-of-cloud/helm/kube-microvm-operator \
   --set serviceAccount.irsaRoleArn=arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
 ```
 
@@ -43,13 +43,13 @@ helm install lambda-vm-operator oci://ghcr.io/plasticity-of-cloud/helm/lambda-vm
 aws eks create-pod-identity-association \
   --cluster-name <CLUSTER> \
   --namespace kube-system \
-  --service-account lambda-vm-operator \
+  --service-account kube-microvm-operator \
   --role-arn arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
 ```
 
 **IRSA**:
 ```bash
-helm upgrade lambda-vm-operator oci://ghcr.io/plasticity-of-cloud/helm/lambda-vm-operator \
+helm upgrade kube-microvm-operator oci://ghcr.io/plasticity-of-cloud/helm/kube-microvm-operator \
   --set serviceAccount.irsaRoleArn=arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
 ```
 
