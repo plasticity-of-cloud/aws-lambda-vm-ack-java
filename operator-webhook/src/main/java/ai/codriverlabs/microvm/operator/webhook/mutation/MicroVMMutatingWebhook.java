@@ -27,8 +27,8 @@ import java.util.List;
 public class MicroVMMutatingWebhook {
 
     private static final Logger LOG = Logger.getLogger(MicroVMMutatingWebhook.class);
-    private static final int DEFAULT_TIMEOUT_SECONDS = 300;
-    private static final int DEFAULT_MEMORY_MB = 512;
+    
+    private static final int DEFAULT_MAX_DURATION = 28800;
 
     private final ObjectMapper objectMapper;
 
@@ -52,11 +52,11 @@ public class MicroVMMutatingWebhook {
      * @return the spec with defaults applied (same object, mutated in place)
      */
     public MicroVMSpec applyDefaults(MicroVMSpec spec) {
-        if (spec.getTimeoutSeconds() == null) {
-            spec.setTimeoutSeconds(DEFAULT_TIMEOUT_SECONDS);
+        if (spec.getMaximumDurationSeconds() == null) {
+            spec.setMaximumDurationSeconds(28800);
         }
-        if (spec.getMemoryMB() == null) {
-            spec.setMemoryMB(DEFAULT_MEMORY_MB);
+        if (spec.getAutoResumeEnabled() == null) {
+            spec.setAutoResumeEnabled(true);
         }
         return spec;
     }
@@ -78,15 +78,11 @@ public class MicroVMMutatingWebhook {
 
             if (spec != null) {
                 // Apply default timeoutSeconds if not set
-                if (spec.getTimeoutSeconds() == null) {
-                    patches.add(buildJsonPatchOp("add", "/spec/timeoutSeconds", DEFAULT_TIMEOUT_SECONDS));
-                    LOG.debugf("Applying default timeoutSeconds=%d", DEFAULT_TIMEOUT_SECONDS);
+                if (spec.getAutoResumeEnabled() == null) {
                 }
 
                 // Apply default memoryMB if not set
-                if (spec.getMemoryMB() == null) {
-                    patches.add(buildJsonPatchOp("add", "/spec/memoryMB", DEFAULT_MEMORY_MB));
-                    LOG.debugf("Applying default memoryMB=%d", DEFAULT_MEMORY_MB);
+                if (spec.getMaximumDurationSeconds() == null) {
                 }
             }
         } catch (Exception e) {

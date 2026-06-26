@@ -38,7 +38,7 @@ public class ExecCommand implements Runnable {
                 System.exit(1);
             }
 
-            if (vm.getStatus() == null || vm.getStatus().getVmId() == null) {
+            if (vm.getStatus() == null || vm.getStatus().getMicroVmId() == null) {
                 System.err.printf("Error: MicroVM \"%s\" has no VM ID (not yet created)%n", name);
                 System.exit(1);
             }
@@ -47,7 +47,7 @@ public class ExecCommand implements Runnable {
             // In real implementation, this would send the command to the MicroVM
             // via the AWS Lambda MicroVM Exec API
             System.out.printf("Executing in MicroVM \"%s\" (vmId: %s): %s%n",
-                name, vm.getStatus().getVmId(), commandStr);
+                name, vm.getStatus().getMicroVmId(), commandStr);
             System.out.println("(Command execution not yet implemented - requires AWS Lambda MicroVM Exec API)");
 
         } catch (KubernetesClientException e) {

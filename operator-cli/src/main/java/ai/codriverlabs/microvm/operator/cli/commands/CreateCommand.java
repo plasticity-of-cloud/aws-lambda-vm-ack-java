@@ -1,7 +1,7 @@
 package ai.codriverlabs.microvm.operator.cli.commands;
 
 import ai.codriverlabs.microvm.operator.core.enums.DesiredState;
-import ai.codriverlabs.microvm.operator.core.enums.Runtime;
+
 import ai.codriverlabs.microvm.operator.core.model.MicroVM;
 import ai.codriverlabs.microvm.operator.core.model.MicroVMSpec;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -17,17 +17,13 @@ public class CreateCommand implements Runnable {
     @Option(names = {"--name"}, required = true, description = "Name of the MicroVM")
     String name;
 
-    @Option(names = {"--runtime"}, required = true, description = "Runtime: java21, python3.12, nodejs20, custom")
-    String runtime;
+    @Option(names = {"--image"}, required = true, description = "MicroVMImage name")
+    String imageRef;
 
-    @Option(names = {"--memory"}, defaultValue = "512", description = "Memory in MB (default: 512)")
-    int memoryMB;
+    @Option(names = {"--max-duration"}, defaultValue = "28800", description = "Max duration seconds")
+    int maxDuration;
 
-    @Option(names = {"--vcpus"}, defaultValue = "2", description = "Number of vCPUs (default: 2)")
-    int vcpus;
 
-    @Option(names = {"--timeout"}, defaultValue = "300", description = "Timeout in seconds (default: 300)")
-    int timeout;
 
     @Option(names = {"-n", "--namespace"}, defaultValue = "default", description = "Namespace (default: default)")
     String namespace;
@@ -45,10 +41,10 @@ public class CreateCommand implements Runnable {
                 .build());
 
             MicroVMSpec spec = new MicroVMSpec();
-            spec.setRuntime(Runtime.fromValue(runtime));
-            spec.setMemoryMB(memoryMB);
-            spec.setVcpus(vcpus);
-            spec.setTimeoutSeconds(timeout);
+            spec.setImageRef(imageRef);
+            spec.setMaximumDurationSeconds(28800);
+            // vcpus inherited from image;
+            // timeout set via maximumDurationSeconds;
             spec.setDesiredState(DesiredState.RUNNING);
             microVM.setSpec(spec);
 

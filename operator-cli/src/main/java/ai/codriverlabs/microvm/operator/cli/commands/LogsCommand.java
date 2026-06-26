@@ -39,7 +39,7 @@ public class LogsCommand implements Runnable {
                 System.exit(1);
             }
 
-            if (vm.getStatus() == null || vm.getStatus().getVmId() == null) {
+            if (vm.getStatus() == null || vm.getStatus().getMicroVmId() == null) {
                 System.err.printf("Error: MicroVM \"%s\" has no VM ID (not yet created)%n", name);
                 System.exit(1);
             }
@@ -47,7 +47,7 @@ public class LogsCommand implements Runnable {
             // In real implementation, this would stream logs from the MicroVM
             // via the AWS Lambda MicroVM API or a log aggregation service
             System.out.printf("Streaming logs for MicroVM \"%s\" (vmId: %s)...%n",
-                name, vm.getStatus().getVmId());
+                name, vm.getStatus().getMicroVmId());
             System.out.println("(Log streaming not yet implemented - requires AWS Lambda MicroVM Log API)");
 
         } catch (KubernetesClientException e) {

@@ -1,6 +1,6 @@
 package ai.codriverlabs.microvm.operator.webhook.validation;
 
-import ai.codriverlabs.microvm.operator.core.enums.Runtime;
+
 import ai.codriverlabs.microvm.operator.core.model.MicroVM;
 import ai.codriverlabs.microvm.operator.core.model.MicroVMNetwork;
 import ai.codriverlabs.microvm.operator.core.model.MicroVMSpec;
@@ -120,7 +120,7 @@ public class MicroVMValidatingWebhook {
     }
 
     void validateMemory(MicroVMSpec spec, List<String> errors) {
-        Integer memoryMB = spec.getMemoryMB();
+        Integer memoryMB = spec.getMaximumDurationSeconds();
         if (memoryMB == null) return; // Will be set by mutation webhook default
 
         if (memoryMB < MIN_MEMORY_MB || memoryMB > MAX_MEMORY_MB) {
@@ -134,7 +134,7 @@ public class MicroVMValidatingWebhook {
     }
 
     void validateVcpus(MicroVMSpec spec, List<String> errors) {
-        Integer vcpus = spec.getVcpus();
+        Integer vcpus = spec.getMaxIdleDurationSeconds();
         if (vcpus == null) return;
 
         if (vcpus < MIN_VCPUS || vcpus > MAX_VCPUS) {
@@ -144,21 +144,21 @@ public class MicroVMValidatingWebhook {
     }
 
     void validateRuntime(MicroVMSpec spec, List<String> errors) {
-        if (spec.getRuntime() == null) {
+        if (spec.getImageRef() == null) {
             errors.add("spec.runtime is required");
             return;
         }
         // Runtime enum already validated by Jackson deserialization
         // But verify explicitly for safety
         try {
-            Runtime.fromValue(spec.getRuntime().getValue());
+            spec.getImageRef();
         } catch (IllegalArgumentException e) {
             errors.add("spec.runtime must be one of: java21, python3.12, nodejs20, custom");
         }
     }
 
     void validateTimeout(MicroVMSpec spec, List<String> errors) {
-        Integer timeout = spec.getTimeoutSeconds();
+        Integer timeout = spec.getSuspendedDurationSeconds();
         if (timeout == null) return; // Will be set by mutation webhook default
 
         if (timeout < MIN_TIMEOUT || timeout > MAX_TIMEOUT) {

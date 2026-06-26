@@ -1,8 +1,12 @@
 package ai.codriverlabs.microvm.operator.controller.aws;
 
+/**
+ * Response from GetMicrovm API.
+ */
 public record DescribeMicroVMResponse(
-    String vmId,
+    String microvmId,
     String state,
-    String ipAddress,
-    String requestId
+    String endpoint,
+    String imageIdentifier,
+    String imageVersion
 ) {}

@@ -10,8 +10,9 @@ import java.util.Objects;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class MicroVMStatus {
     private MicroVMState state;
-    private String vmId;
-    private String ipAddress;
+    private String microVmId;
+    private String endpointUrl;
+    private String imageVersion;
     private List<Condition> conditions = new ArrayList<>();
     private Instant lastTransitionTime;
     private Long observedGeneration;
@@ -20,10 +21,12 @@ public class MicroVMStatus {
 
     public MicroVMState getState() { return state; }
     public void setState(MicroVMState state) { this.state = state; }
-    public String getVmId() { return vmId; }
-    public void setVmId(String vmId) { this.vmId = vmId; }
-    public String getIpAddress() { return ipAddress; }
-    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+    public String getMicroVmId() { return microVmId; }
+    public void setMicroVmId(String microVmId) { this.microVmId = microVmId; }
+    public String getEndpointUrl() { return endpointUrl; }
+    public void setEndpointUrl(String endpointUrl) { this.endpointUrl = endpointUrl; }
+    public String getImageVersion() { return imageVersion; }
+    public void setImageVersion(String imageVersion) { this.imageVersion = imageVersion; }
     public List<Condition> getConditions() { return conditions; }
     public void setConditions(List<Condition> conditions) { this.conditions = conditions; }
     public Instant getLastTransitionTime() { return lastTransitionTime; }
@@ -36,16 +39,17 @@ public class MicroVMStatus {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MicroVMStatus s = (MicroVMStatus) o;
-        return state == s.state && Objects.equals(vmId, s.vmId) && Objects.equals(ipAddress, s.ipAddress) &&
+        return state == s.state && Objects.equals(microVmId, s.microVmId) &&
+               Objects.equals(endpointUrl, s.endpointUrl) &&
                Objects.equals(conditions, s.conditions) && Objects.equals(lastTransitionTime, s.lastTransitionTime) &&
                Objects.equals(observedGeneration, s.observedGeneration);
     }
 
     @Override
-    public int hashCode() { return Objects.hash(state, vmId, ipAddress, conditions, lastTransitionTime, observedGeneration); }
+    public int hashCode() { return Objects.hash(state, microVmId, endpointUrl, conditions, lastTransitionTime, observedGeneration); }
 
     @Override
     public String toString() {
-        return "MicroVMStatus{state=" + state + ", vmId='" + vmId + "', ipAddress='" + ipAddress + "', observedGeneration=" + observedGeneration + "}";
+        return "MicroVMStatus{state=" + state + ", microVmId='" + microVmId + "', endpoint='" + endpointUrl + "'}";
     }
 }

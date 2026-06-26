@@ -1,47 +1,64 @@
 package ai.codriverlabs.microvm.operator.core.model;
 
-import ai.codriverlabs.microvm.operator.core.enums.Runtime;
+import ai.codriverlabs.microvm.operator.core.enums.DesiredState;
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Spec for MicroVMTemplate CR — reusable configuration template for MicroVMs.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class MicroVMTemplateSpec {
-    private Runtime runtime;
-    private Integer memoryMB;
-    private Integer vcpus;
-    private Integer timeoutSeconds;
-    private Map<String, String> environment;
-    private Map<String, String> labels;
 
-    public MicroVMTemplateSpec() {}
+    private String imageRef;
+    private String networkRef;
+    private String ingressConnector;
+    private String executionRoleArn;
+    private Integer maxIdleDurationSeconds;
+    private Integer suspendedDurationSeconds;
+    private Boolean autoResumeEnabled;
+    private Integer maximumDurationSeconds;
+    private Map<String, String> tags;
 
-    public Runtime getRuntime() { return runtime; }
-    public void setRuntime(Runtime runtime) { this.runtime = runtime; }
-    public Integer getMemoryMB() { return memoryMB; }
-    public void setMemoryMB(Integer memoryMB) { this.memoryMB = memoryMB; }
-    public Integer getVcpus() { return vcpus; }
-    public void setVcpus(Integer vcpus) { this.vcpus = vcpus; }
-    public Integer getTimeoutSeconds() { return timeoutSeconds; }
-    public void setTimeoutSeconds(Integer timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; }
-    public Map<String, String> getEnvironment() { return environment; }
-    public void setEnvironment(Map<String, String> environment) { this.environment = environment; }
-    public Map<String, String> getLabels() { return labels; }
-    public void setLabels(Map<String, String> labels) { this.labels = labels; }
+    public String getImageRef() { return imageRef; }
+    public void setImageRef(String imageRef) { this.imageRef = imageRef; }
+
+    public String getNetworkRef() { return networkRef; }
+    public void setNetworkRef(String networkRef) { this.networkRef = networkRef; }
+
+    public String getIngressConnector() { return ingressConnector; }
+    public void setIngressConnector(String ingressConnector) { this.ingressConnector = ingressConnector; }
+
+    public String getExecutionRoleArn() { return executionRoleArn; }
+    public void setExecutionRoleArn(String executionRoleArn) { this.executionRoleArn = executionRoleArn; }
+
+    public Integer getMaxIdleDurationSeconds() { return maxIdleDurationSeconds; }
+    public void setMaxIdleDurationSeconds(Integer v) { this.maxIdleDurationSeconds = v; }
+
+    public Integer getSuspendedDurationSeconds() { return suspendedDurationSeconds; }
+    public void setSuspendedDurationSeconds(Integer v) { this.suspendedDurationSeconds = v; }
+
+    public Boolean getAutoResumeEnabled() { return autoResumeEnabled; }
+    public void setAutoResumeEnabled(Boolean v) { this.autoResumeEnabled = v; }
+
+    public Integer getMaximumDurationSeconds() { return maximumDurationSeconds; }
+    public void setMaximumDurationSeconds(Integer v) { this.maximumDurationSeconds = v; }
+
+    public Map<String, String> getTags() { return tags; }
+    public void setTags(Map<String, String> tags) { this.tags = tags; }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        MicroVMTemplateSpec s = (MicroVMTemplateSpec) o;
-        return runtime == s.runtime && Objects.equals(memoryMB, s.memoryMB) && Objects.equals(vcpus, s.vcpus) &&
-               Objects.equals(timeoutSeconds, s.timeoutSeconds) && Objects.equals(environment, s.environment) &&
-               Objects.equals(labels, s.labels);
+        if (!(o instanceof MicroVMTemplateSpec s)) return false;
+        return Objects.equals(imageRef, s.imageRef) && Objects.equals(networkRef, s.networkRef);
     }
 
     @Override
-    public int hashCode() { return Objects.hash(runtime, memoryMB, vcpus, timeoutSeconds, environment, labels); }
+    public int hashCode() { return Objects.hash(imageRef, networkRef); }
 
     @Override
-    public String toString() { return "MicroVMTemplateSpec{runtime=" + runtime + ", memoryMB=" + memoryMB + ", vcpus=" + vcpus + "}"; }
+    public String toString() { return "MicroVMTemplateSpec{imageRef=" + imageRef + "}"; }
 }

@@ -10,11 +10,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Default implementation of MicroVMClient that wraps the AWS Lambda MicroVM API.
- * In the initial implementation, this simulates AWS API calls since the actual
- * AWS Lambda MicroVM SDK is not yet publicly available.
- *
- * The class structure is ready for integration once the AWS SDK artifact is released.
+ * Default implementation of MicroVMClient wrapping the AWS Lambda MicroVMs API (lambda-microvms 2025-09-09).
+ * Placeholder until the official Java SDK artifact is released.
  */
 @ApplicationScoped
 public class DefaultMicroVMClient implements MicroVMClient {
@@ -33,75 +30,44 @@ public class DefaultMicroVMClient implements MicroVMClient {
     }
 
     @Override
-    public CompletableFuture<CreateMicroVMResponse> createMicroVM(CreateMicroVMRequest request) {
+    public CompletableFuture<RunMicroVMResponse> runMicroVM(RunMicroVMRequest request) {
         return CompletableFuture.supplyAsync(() -> {
-            LOG.infof("Creating MicroVM: runtime=%s, memory=%dMB, vcpus=%d, region=%s",
-                    request.runtime(), request.memoryMB(), request.vcpus(),
+            LOG.infof("RunMicrovm: image=%s, region=%s", request.imageIdentifier(),
                     request.region() != null ? request.region() : defaultRegion);
-            // TODO: Replace with actual AWS SDK call when available
-            // LambdaMicroVMClient.create(CreateMicroVMRequest.builder()...build())
-            throw new UnsupportedOperationException(
-                "AWS Lambda MicroVM SDK not yet available. Replace with actual SDK call.");
+            // TODO: Replace with LambdaMicrovmsClient.runMicrovm() when Java SDK available
+            throw new UnsupportedOperationException("AWS Lambda MicroVMs Java SDK not yet available");
         }, executor);
     }
 
     @Override
-    public CompletableFuture<DescribeMicroVMResponse> describeMicroVM(String vmId) {
+    public CompletableFuture<DescribeMicroVMResponse> getMicroVM(String microvmId) {
         return CompletableFuture.supplyAsync(() -> {
-            LOG.debugf("Describing MicroVM: vmId=%s", vmId);
-            // TODO: Replace with actual AWS SDK call
-            throw new UnsupportedOperationException(
-                "AWS Lambda MicroVM SDK not yet available. Replace with actual SDK call.");
+            LOG.debugf("GetMicrovm: id=%s", microvmId);
+            throw new UnsupportedOperationException("AWS Lambda MicroVMs Java SDK not yet available");
         }, executor);
     }
 
     @Override
-    public CompletableFuture<Void> startMicroVM(String vmId) {
+    public CompletableFuture<Void> suspendMicroVM(String microvmId) {
         return CompletableFuture.runAsync(() -> {
-            LOG.infof("Starting MicroVM: vmId=%s", vmId);
-            // TODO: Replace with actual AWS SDK call
-            throw new UnsupportedOperationException(
-                "AWS Lambda MicroVM SDK not yet available. Replace with actual SDK call.");
+            LOG.infof("SuspendMicrovm: id=%s", microvmId);
+            throw new UnsupportedOperationException("AWS Lambda MicroVMs Java SDK not yet available");
         }, executor);
     }
 
     @Override
-    public CompletableFuture<Void> stopMicroVM(String vmId) {
+    public CompletableFuture<Void> resumeMicroVM(String microvmId) {
         return CompletableFuture.runAsync(() -> {
-            LOG.infof("Stopping MicroVM: vmId=%s", vmId);
-            // TODO: Replace with actual AWS SDK call
-            throw new UnsupportedOperationException(
-                "AWS Lambda MicroVM SDK not yet available. Replace with actual SDK call.");
+            LOG.infof("ResumeMicrovm: id=%s", microvmId);
+            throw new UnsupportedOperationException("AWS Lambda MicroVMs Java SDK not yet available");
         }, executor);
     }
 
     @Override
-    public CompletableFuture<Void> pauseMicroVM(String vmId) {
+    public CompletableFuture<Void> terminateMicroVM(String microvmId) {
         return CompletableFuture.runAsync(() -> {
-            LOG.infof("Pausing MicroVM: vmId=%s", vmId);
-            // TODO: Replace with actual AWS SDK call
-            throw new UnsupportedOperationException(
-                "AWS Lambda MicroVM SDK not yet available. Replace with actual SDK call.");
-        }, executor);
-    }
-
-    @Override
-    public CompletableFuture<Void> resumeMicroVM(String vmId) {
-        return CompletableFuture.runAsync(() -> {
-            LOG.infof("Resuming MicroVM: vmId=%s", vmId);
-            // TODO: Replace with actual AWS SDK call
-            throw new UnsupportedOperationException(
-                "AWS Lambda MicroVM SDK not yet available. Replace with actual SDK call.");
-        }, executor);
-    }
-
-    @Override
-    public CompletableFuture<Void> destroyMicroVM(String vmId) {
-        return CompletableFuture.runAsync(() -> {
-            LOG.infof("Destroying MicroVM: vmId=%s", vmId);
-            // TODO: Replace with actual AWS SDK call
-            throw new UnsupportedOperationException(
-                "AWS Lambda MicroVM SDK not yet available. Replace with actual SDK call.");
+            LOG.infof("TerminateMicrovm: id=%s", microvmId);
+            throw new UnsupportedOperationException("AWS Lambda MicroVMs Java SDK not yet available");
         }, executor);
     }
 }

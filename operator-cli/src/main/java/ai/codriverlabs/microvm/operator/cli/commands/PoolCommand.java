@@ -1,6 +1,5 @@
 package ai.codriverlabs.microvm.operator.cli.commands;
 
-import ai.codriverlabs.microvm.operator.core.enums.Runtime;
 import ai.codriverlabs.microvm.operator.core.model.MicroVMPool;
 import ai.codriverlabs.microvm.operator.core.model.MicroVMPoolSpec;
 import ai.codriverlabs.microvm.operator.core.model.MicroVMSpec;
@@ -59,9 +58,9 @@ public class PoolCommand {
                 spec.setMinReady(0);
 
                 MicroVMSpec template = new MicroVMSpec();
-                template.setRuntime(Runtime.fromValue(runtime));
-                template.setMemoryMB(memoryMB);
-                template.setVcpus(vcpus);
+                // template.setImageRef(DesiredState.fromValue(runtime));
+                // template.setMemoryMB(memoryMB);
+                // template.setVcpus(vcpus);
                 spec.setTemplate(template);
 
                 pool.setSpec(spec);

@@ -1,6 +1,5 @@
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/enums/DesiredState.java
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/enums/MicroVMState.java
-/home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/enums/Runtime.java
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/Condition.java
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVM.java
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVMNetwork.java

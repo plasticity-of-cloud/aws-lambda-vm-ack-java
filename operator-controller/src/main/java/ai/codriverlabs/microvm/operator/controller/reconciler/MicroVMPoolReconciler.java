@@ -146,14 +146,13 @@ public class MicroVMPoolReconciler implements Reconciler<MicroVMPool> {
 
         // Copy spec from template
         MicroVMSpec childSpec = new MicroVMSpec();
-        childSpec.setRuntime(template.getRuntime());
-        childSpec.setMemoryMB(template.getMemoryMB());
-        childSpec.setVcpus(template.getVcpus());
-        childSpec.setTimeoutSeconds(template.getTimeoutSeconds());
+        childSpec.setImageRef(template.getImageRef());
         childSpec.setNetworkRef(template.getNetworkRef());
-        childSpec.setTemplateRef(template.getTemplateRef());
         childSpec.setDesiredState(DesiredState.RUNNING);
-        childSpec.setRegion(template.getRegion());
+        childSpec.setMaxIdleDurationSeconds(template.getMaxIdleDurationSeconds());
+        childSpec.setSuspendedDurationSeconds(template.getSuspendedDurationSeconds());
+        childSpec.setAutoResumeEnabled(template.getAutoResumeEnabled());
+        childSpec.setMaximumDurationSeconds(template.getMaximumDurationSeconds());
         childSpec.setTags(template.getTags());
         child.setSpec(childSpec);
 

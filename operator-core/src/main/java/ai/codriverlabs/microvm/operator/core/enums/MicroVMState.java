@@ -3,15 +3,14 @@ package ai.codriverlabs.microvm.operator.core.enums;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
+/**
+ * MicroVM lifecycle states as defined by the AWS Lambda MicroVMs API (2025-09-09).
+ */
 public enum MicroVMState {
     PENDING("Pending"),
-    CREATING("Creating"),
     RUNNING("Running"),
-    PAUSED("Paused"),
-    RESUMING("Resuming"),
-    STOPPED("Stopped"),
-    STARTING("Starting"),
-    STOPPING("Stopping"),
+    SUSPENDING("Suspending"),
+    SUSPENDED("Suspended"),
     TERMINATING("Terminating"),
     TERMINATED("Terminated"),
     FAILED("Failed");
@@ -26,7 +25,7 @@ public enum MicroVMState {
     @JsonCreator
     public static MicroVMState fromValue(String value) {
         for (MicroVMState s : values()) {
-            if (s.value.equals(value)) return s;
+            if (s.value.equalsIgnoreCase(value)) return s;
         }
         throw new IllegalArgumentException("Unknown state: " + value);
     }

@@ -47,12 +47,12 @@ public class ListCommand implements Runnable {
                 String vmName = vm.getMetadata().getName();
                 String state = vm.getStatus() != null && vm.getStatus().getState() != null
                     ? vm.getStatus().getState().getValue() : "Unknown";
-                String vmId = vm.getStatus() != null && vm.getStatus().getVmId() != null
-                    ? vm.getStatus().getVmId() : "-";
-                String runtime = vm.getSpec() != null && vm.getSpec().getRuntime() != null
-                    ? vm.getSpec().getRuntime().getValue() : "-";
-                String memory = vm.getSpec() != null && vm.getSpec().getMemoryMB() != null
-                    ? vm.getSpec().getMemoryMB() + "Mi" : "-";
+                String vmId = vm.getStatus() != null && vm.getStatus().getMicroVmId() != null
+                    ? vm.getStatus().getMicroVmId() : "-";
+                String runtime = vm.getSpec() != null && vm.getSpec().getImageRef() != null
+                    ? vm.getSpec().getImageRef() : "-";
+                String memory = vm.getSpec() != null && vm.getSpec().getMaximumDurationSeconds() != null
+                    ? vm.getSpec().getMaximumDurationSeconds() + "Mi" : "-";
                 String age = formatAge(vm.getMetadata().getCreationTimestamp());
 
                 System.out.printf("%-20s %-12s %-36s %-12s %-8s %-8s%n",

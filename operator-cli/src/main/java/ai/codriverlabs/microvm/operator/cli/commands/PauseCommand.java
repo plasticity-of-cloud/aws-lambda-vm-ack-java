@@ -34,7 +34,7 @@ public class PauseCommand implements Runnable {
                 System.exit(1);
             }
 
-            vm.getSpec().setDesiredState(DesiredState.PAUSED);
+            vm.getSpec().setDesiredState(DesiredState.SUSPENDED);
             client.resources(MicroVM.class)
                 .inNamespace(namespace)
                 .resource(vm)

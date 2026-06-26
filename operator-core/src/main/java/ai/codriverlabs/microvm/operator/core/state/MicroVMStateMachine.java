@@ -9,19 +9,22 @@ import java.util.Collections;
 import static ai.codriverlabs.microvm.operator.core.enums.MicroVMState.*;
 import static java.util.Map.entry;
 
+/**
+ * State machine matching the AWS Lambda MicroVMs lifecycle (API 2025-09-09).
+ * 
+ * PENDING → RUNNING → SUSPENDING → SUSPENDED → RUNNING (resume)
+ *                   → TERMINATING → TERMINATED
+ * FAILED → PENDING (retry) or TERMINATING
+ */
 public class MicroVMStateMachine {
 
     private static final Map<MicroVMState, Set<MicroVMState>> VALID_TRANSITIONS = Map.ofEntries(
-        entry(PENDING,      Set.of(CREATING)),
-        entry(CREATING,     Set.of(RUNNING, FAILED)),
-        entry(RUNNING,      Set.of(PAUSED, STOPPING, TERMINATING)),
-        entry(PAUSED,       Set.of(RESUMING, TERMINATING)),
-        entry(RESUMING,     Set.of(RUNNING, FAILED)),
-        entry(STOPPING,     Set.of(STOPPED, FAILED)),
-        entry(STOPPED,      Set.of(STARTING, TERMINATING)),
-        entry(STARTING,     Set.of(RUNNING, FAILED)),
+        entry(PENDING,      Set.of(RUNNING, FAILED)),
+        entry(RUNNING,      Set.of(SUSPENDING, TERMINATING)),
+        entry(SUSPENDING,   Set.of(SUSPENDED, FAILED)),
+        entry(SUSPENDED,    Set.of(RUNNING, TERMINATING)),
         entry(TERMINATING,  Set.of(TERMINATED)),
-        entry(FAILED,       Set.of(CREATING, TERMINATING)),
+        entry(FAILED,       Set.of(PENDING, TERMINATING)),
         entry(TERMINATED,   Set.of())
     );
 

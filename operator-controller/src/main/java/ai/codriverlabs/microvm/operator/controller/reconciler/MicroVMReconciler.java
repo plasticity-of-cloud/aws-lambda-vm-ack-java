@@ -85,16 +85,16 @@ public class MicroVMReconciler implements Reconciler<MicroVM>, Cleaner<MicroVM> 
             }
 
             // If in Creating state, check if AWS resource is ready
-            if (currentState == MicroVMState.CREATING) {
+            if (currentState == MicroVMState.PENDING) {
                 return handleCreatingState(resource);
             }
 
             // Describe current state from AWS
-            DescribeMicroVMResponse awsState = describeFromAws(status.getVmId());
+            DescribeMicroVMResponse awsState = describeFromAws(status.getMicroVmId());
             if (awsState == null) {
                 // Resource not found in AWS, recreate
                 LOG.warnf("MicroVM %s/%s not found in AWS, transitioning to Creating", namespace, name);
-                return transitionState(resource, MicroVMState.CREATING, "ResourceNotFound", "AWS resource not found, recreating");
+                return transitionState(resource, MicroVMState.PENDING, "ResourceNotFound", "AWS resource not found, recreating");
             }
 
             // Detect drift between desired and actual state
@@ -156,9 +156,9 @@ public class MicroVMReconciler implements Reconciler<MicroVM>, Cleaner<MicroVM> 
 
             // Call AWS destroy
             try {
-                String vmId = status.getVmId();
+                String vmId = status.getMicroVmId();
                 if (vmId != null) {
-                    microVMClient.destroyMicroVM(vmId).get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    microVMClient.terminateMicroVM(vmId).get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 }
                 status.setState(MicroVMState.TERMINATED);
                 status.setLastTransitionTime(Instant.now());
@@ -174,9 +174,9 @@ public class MicroVMReconciler implements Reconciler<MicroVM>, Cleaner<MicroVM> 
         // If transition to Terminating is not valid (e.g., already Terminating)
         if (currentState == MicroVMState.TERMINATING) {
             try {
-                String vmId = status.getVmId();
+                String vmId = status.getMicroVmId();
                 if (vmId != null) {
-                    microVMClient.destroyMicroVM(vmId).get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    microVMClient.terminateMicroVM(vmId).get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 }
                 status.setState(MicroVMState.TERMINATED);
                 return DeleteControl.defaultDelete();
@@ -199,44 +199,50 @@ public class MicroVMReconciler implements Reconciler<MicroVM>, Cleaner<MicroVM> 
 
     private UpdateControl<MicroVM> handlePendingState(MicroVM resource) {
         MicroVMSpec spec = resource.getSpec();
-        CreateMicroVMRequest request = new CreateMicroVMRequest(
-            spec.getRuntime() != null ? spec.getRuntime().getValue() : null,
-            spec.getMemoryMB() != null ? spec.getMemoryMB() : 512,
-            spec.getVcpus() != null ? spec.getVcpus() : 2,
-            spec.getTimeoutSeconds() != null ? spec.getTimeoutSeconds() : 300,
-            null, null, null, // VPC/subnet/SG populated from networkRef in real impl
+        RunMicroVMRequest request = new RunMicroVMRequest(
+            spec.getImageRef(),
+            spec.getImageVersion(),
+            spec.getExecutionRoleArn(),
+            spec.getRunHookPayload(),
+            spec.getIngressConnector(),
+            spec.getNetworkRef(),
+            spec.getMaxIdleDurationSeconds(),
+            spec.getSuspendedDurationSeconds(),
+            spec.getAutoResumeEnabled(),
+            spec.getMaximumDurationSeconds(),
             spec.getTags(),
             spec.getRegion()
         );
 
         try {
-            CreateMicroVMResponse response = microVMClient.createMicroVM(request)
+            RunMicroVMResponse response = microVMClient.runMicroVM(request)
                 .get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
-            resource.getStatus().setVmId(response.vmId());
-            return transitionState(resource, MicroVMState.CREATING, "Creating", "MicroVM creation initiated, vmId=" + response.vmId());
+            resource.getStatus().setMicroVmId(response.microvmId());
+            resource.getStatus().setEndpointUrl(response.endpoint());
+            return transitionState(resource, MicroVMState.RUNNING, "Running", "MicroVM running, id=" + response.microvmId());
         } catch (Exception e) {
             return handleCreationError(resource, e);
         }
     }
 
     private UpdateControl<MicroVM> handleCreatingState(MicroVM resource) {
-        String vmId = resource.getStatus().getVmId();
-        if (vmId == null) {
+        String microvmId = resource.getStatus().getMicroVmId();
+        if (microvmId == null) {
             return handlePendingState(resource);
         }
 
         try {
-            DescribeMicroVMResponse response = microVMClient.describeMicroVM(vmId)
+            DescribeMicroVMResponse response = microVMClient.getMicroVM(microvmId)
                 .get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             MicroVMState awsState = MicroVMState.fromValue(response.state());
             if (awsState == MicroVMState.RUNNING) {
-                resource.getStatus().setIpAddress(response.ipAddress());
+                resource.getStatus().setEndpointUrl(response.endpoint());
                 return transitionState(resource, MicroVMState.RUNNING, "Running", "MicroVM is running");
             }
 
-            // Still creating, requeue
+            // Still pending, requeue
             return UpdateControl.patchStatus(resource).rescheduleAfter(Duration.ofSeconds(5));
         } catch (AwsApiException e) {
             if (e.isNotFound()) {
@@ -249,19 +255,18 @@ public class MicroVMReconciler implements Reconciler<MicroVM>, Cleaner<MicroVM> 
     }
 
     private UpdateControl<MicroVM> executeDriftAction(MicroVM resource, DriftDetector.DriftResult.ActionRequired action) {
-        String vmId = resource.getStatus().getVmId();
+        String microvmId = resource.getStatus().getMicroVmId();
         try {
             CompletableFuture<Void> future = switch (action.action()) {
-                case CREATE -> CompletableFuture.completedFuture(null);
-                case START -> microVMClient.startMicroVM(vmId);
-                case STOP -> microVMClient.stopMicroVM(vmId);
-                case PAUSE -> microVMClient.pauseMicroVM(vmId);
-                case RESUME -> microVMClient.resumeMicroVM(vmId);
+                case RECREATE -> CompletableFuture.completedFuture(null);
+                case SUSPEND -> microVMClient.suspendMicroVM(microvmId);
+                case RESUME -> microVMClient.resumeMicroVM(microvmId);
+                case TERMINATE -> microVMClient.terminateMicroVM(microvmId);
                 case NO_OP -> CompletableFuture.completedFuture(null);
             };
 
-            if (action.action() == DriftDetector.DriftAction.CREATE) {
-                return transitionState(resource, MicroVMState.CREATING, "Recreating", "Drift correction: recreating MicroVM");
+            if (action.action() == DriftDetector.DriftAction.RECREATE) {
+                return transitionState(resource, MicroVMState.PENDING, "Recreating", "Drift correction: recreating MicroVM");
             }
 
             future.get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -295,7 +300,7 @@ public class MicroVMReconciler implements Reconciler<MicroVM>, Cleaner<MicroVM> 
         }
 
         if (e.isNotFound()) {
-            return transitionState(resource, MicroVMState.CREATING, "ResourceNotFound", "AWS resource not found, recreating");
+            return transitionState(resource, MicroVMState.PENDING, "ResourceNotFound", "AWS resource not found, recreating");
         }
 
         if (e.isAuthFailure()) {
@@ -338,15 +343,15 @@ public class MicroVMReconciler implements Reconciler<MicroVM>, Cleaner<MicroVM> 
             status.setLastTransitionTime(Instant.now());
         }
 
-        status.setVmId(awsState.vmId());
-        status.setIpAddress(awsState.ipAddress());
+        status.setMicroVmId(awsState.microvmId());
+        status.setEndpointUrl(awsState.endpoint());
         status.setObservedGeneration(resource.getMetadata().getGeneration());
     }
 
     private DescribeMicroVMResponse describeFromAws(String vmId) {
         if (vmId == null) return null;
         try {
-            return microVMClient.describeMicroVM(vmId).get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            return microVMClient.getMicroVM(vmId).get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
             if (e.getCause() instanceof AwsApiException awsEx && awsEx.isNotFound()) {
                 return null;

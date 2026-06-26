@@ -3,10 +3,13 @@ package ai.codriverlabs.microvm.operator.core.enums;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
+/**
+ * Desired state for a MicroVM as supported by the AWS Lambda MicroVMs API.
+ */
 public enum DesiredState {
-    RUNNING("running"),
-    PAUSED("paused"),
-    STOPPED("stopped");
+    RUNNING("Running"),
+    SUSPENDED("Suspended"),
+    TERMINATED("Terminated");
 
     private final String value;
 
@@ -18,7 +21,7 @@ public enum DesiredState {
     @JsonCreator
     public static DesiredState fromValue(String value) {
         for (DesiredState d : values()) {
-            if (d.value.equals(value)) return d;
+            if (d.value.equalsIgnoreCase(value)) return d;
         }
         throw new IllegalArgumentException("Unknown desired state: " + value);
     }

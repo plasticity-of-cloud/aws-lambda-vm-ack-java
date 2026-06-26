@@ -29,9 +29,9 @@ public class TableFormatter {
         return String.format(ROW_FORMAT,
             truncate(name, 20),
             truncate(status.getState() != null ? status.getState().getValue() : "Unknown", 12),
-            truncate(status.getVmId() != null ? status.getVmId() : "<none>", 15),
-            truncate(spec.getRuntime() != null ? spec.getRuntime().getValue() : "unknown", 12),
-            spec.getMemoryMB() != null ? String.valueOf(spec.getMemoryMB()) : "0",
+            truncate(status.getMicroVmId() != null ? status.getMicroVmId() : "<none>", 15),
+            truncate(spec.getImageRef() != null ? spec.getImageRef() : "unknown", 12),
+            spec.getMaximumDurationSeconds() != null ? String.valueOf(spec.getMaximumDurationSeconds()) : "0",
             age);
     }
 

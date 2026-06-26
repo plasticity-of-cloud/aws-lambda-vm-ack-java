@@ -42,11 +42,11 @@ public class DescribeCommand implements Runnable {
 
             System.out.println("Spec:");
             if (vm.getSpec() != null) {
-                System.out.printf("  Runtime:    %s%n", vm.getSpec().getRuntime() != null ? vm.getSpec().getRuntime().getValue() : "-");
-                System.out.printf("  Memory:     %s MB%n", vm.getSpec().getMemoryMB() != null ? vm.getSpec().getMemoryMB() : "-");
-                System.out.printf("  vCPUs:      %s%n", vm.getSpec().getVcpus() != null ? vm.getSpec().getVcpus() : "-");
-                System.out.printf("  Timeout:    %s s%n", vm.getSpec().getTimeoutSeconds() != null ? vm.getSpec().getTimeoutSeconds() : "-");
-                System.out.printf("  Desired:    %s%n", vm.getSpec().getDesiredState() != null ? vm.getSpec().getDesiredState().getValue() : "-");
+                System.out.printf("  Runtime:    %s%n", vm.getSpec().getImageRef() != null ? vm.getSpec().getImageRef() : "-");
+                System.out.printf("  Memory:     %s MB%n", vm.getSpec().getMaximumDurationSeconds() != null ? vm.getSpec().getMaximumDurationSeconds() : "-");
+                System.out.printf("  vCPUs:      %s%n", vm.getSpec().getMaxIdleDurationSeconds() != null ? vm.getSpec().getMaxIdleDurationSeconds() : "-");
+                System.out.printf("  Timeout:    %s s%n", vm.getSpec().getSuspendedDurationSeconds() != null ? vm.getSpec().getSuspendedDurationSeconds() : "-");
+                System.out.printf("  Desired:    %s%n", vm.getSpec().getDesiredState() != null ? vm.getSpec().getDesiredState() : "-");
                 System.out.printf("  NetworkRef: %s%n", vm.getSpec().getNetworkRef() != null ? vm.getSpec().getNetworkRef() : "-");
                 System.out.printf("  Region:     %s%n", vm.getSpec().getRegion() != null ? vm.getSpec().getRegion() : "-");
             }
@@ -54,9 +54,9 @@ public class DescribeCommand implements Runnable {
 
             System.out.println("Status:");
             if (vm.getStatus() != null) {
-                System.out.printf("  State:      %s%n", vm.getStatus().getState() != null ? vm.getStatus().getState().getValue() : "-");
-                System.out.printf("  VM ID:      %s%n", vm.getStatus().getVmId() != null ? vm.getStatus().getVmId() : "-");
-                System.out.printf("  IP Address: %s%n", vm.getStatus().getIpAddress() != null ? vm.getStatus().getIpAddress() : "-");
+                System.out.printf("  State:      %s%n", vm.getStatus().getState() != null ? vm.getStatus().getState() : "-");
+                System.out.printf("  VM ID:      %s%n", vm.getStatus().getMicroVmId() != null ? vm.getStatus().getMicroVmId() : "-");
+                System.out.printf("  IP Address: %s%n", vm.getStatus().getEndpointUrl() != null ? vm.getStatus().getEndpointUrl() : "-");
                 System.out.printf("  Generation: %s%n", vm.getStatus().getObservedGeneration() != null ? vm.getStatus().getObservedGeneration() : "-");
 
                 if (vm.getStatus().getConditions() != null && !vm.getStatus().getConditions().isEmpty()) {

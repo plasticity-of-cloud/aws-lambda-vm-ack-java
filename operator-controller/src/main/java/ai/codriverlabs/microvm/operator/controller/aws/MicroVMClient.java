@@ -3,22 +3,22 @@ package ai.codriverlabs.microvm.operator.controller.aws;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Abstraction over the AWS Lambda MicroVM API for testability.
- * All operations are async and return CompletableFutures.
+ * Client interface for AWS Lambda MicroVMs API (service: lambda-microvms, version 2025-09-09).
  */
 public interface MicroVMClient {
 
-    CompletableFuture<CreateMicroVMResponse> createMicroVM(CreateMicroVMRequest request);
+    /** Calls RunMicrovm — creates and starts a new MicroVM from an image snapshot. */
+    CompletableFuture<RunMicroVMResponse> runMicroVM(RunMicroVMRequest request);
 
-    CompletableFuture<DescribeMicroVMResponse> describeMicroVM(String vmId);
+    /** Calls GetMicrovm — describes current state of a MicroVM. */
+    CompletableFuture<DescribeMicroVMResponse> getMicroVM(String microvmId);
 
-    CompletableFuture<Void> startMicroVM(String vmId);
+    /** Calls SuspendMicrovm — suspends a running MicroVM (preserves state). */
+    CompletableFuture<Void> suspendMicroVM(String microvmId);
 
-    CompletableFuture<Void> stopMicroVM(String vmId);
+    /** Calls ResumeMicrovm — resumes a suspended MicroVM. */
+    CompletableFuture<Void> resumeMicroVM(String microvmId);
 
-    CompletableFuture<Void> pauseMicroVM(String vmId);
-
-    CompletableFuture<Void> resumeMicroVM(String vmId);
-
-    CompletableFuture<Void> destroyMicroVM(String vmId);
+    /** Calls TerminateMicrovm — terminates a MicroVM and releases all resources. */
+    CompletableFuture<Void> terminateMicroVM(String microvmId);
 }
