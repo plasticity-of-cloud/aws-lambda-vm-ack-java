@@ -100,6 +100,28 @@ Egress to VPC requires customer-managed connector (our MicroVMNetwork design is 
 
 ## Impact on Implementation
 
+### Additional findings from API reference (boto3 / PHP SDK)
+
+**Service name**: `lambda-microvms` (API version 2025-09-09)
+
+**Complete API operations**:
+- `RunMicrovm`, `GetMicrovm`, `ListMicrovms`, `SuspendMicrovm`, `ResumeMicrovm`, `TerminateMicrovm`
+- `CreateMicrovmImage`, `GetMicrovmImage`, `UpdateMicrovmImage`, `DeleteMicrovmImage`, `ListMicrovmImages`
+- `GetMicrovmImageVersion`, `ListMicrovmImageVersions`, `UpdateMicrovmImageVersion`, `DeleteMicrovmImageVersion`
+- `GetMicrovmImageBuild`, `ListMicrovmImageBuilds`
+- `ListManagedMicrovmImages`, `ListManagedMicrovmImageVersions`
+- `CreateMicrovmAuthToken`, `CreateMicrovmShellAuthToken`
+- `TagResource`, `UntagResource`, `ListTags`
+
+**Key API details**:
+- `CreateMicrovmShellAuthToken` — native shell access exists (validates `kubectl microvm exec`)
+- Image version is a **string** (e.g., "1.0"), not integer
+- Memory specified as `resources[{minimumMemoryInMiB: N}]` (our CRD abstracts as `memorySizeMB`)
+- CPU architecture: `cpuConfigurations[{architecture: "ARM_64"}]`
+- Egress connectors can be set at **both** image level and run-microvm level
+- Hooks are individually enable/disable per type with separate timeouts
+- Image states: `CREATING|CREATED|CREATE_FAILED|UPDATING|UPDATED|UPDATE_FAILED|DELETING|DELETE_FAILED|DELETED`
+
 ### Code changes needed:
 1. `MicroVMState` enum: remove STOPPED, STOPPING, PAUSED, STARTING, RESUMING
 2. `DesiredState` enum: only Running, Suspended, Terminated
@@ -108,11 +130,17 @@ Egress to VPC requires customer-managed connector (our MicroVMNetwork design is 
 5. `MicroVMSpec`: remove `memorySizeMB`, `vcpus`; add `executionRoleArn`, `runHookPayload`, `logging`
 6. `MicroVMImage` CRD: add (not yet implemented)
 7. `MicroVMNetwork` CRD: already mostly correct
+8. Image version: change from `int` to `String`
+9. Add `architecture` field to MicroVMImage (default ARM_64)
 
 ### CRD schema changes:
 - `MicroVM.spec.memorySizeMB` → removed (inherited from image)
 - `MicroVM.spec.executionRoleArn` → added
 - `MicroVM.spec.runHookPayload` → added
-- `MicroVMImage.spec.memorySizeMB` → added
+- `MicroVM.spec.ingressConnector` → added (default: ALL_INGRESS)
+- `MicroVMImage.spec.memorySizeMB` → added (maps to resources[].minimumMemoryInMiB)
+- `MicroVMImage.spec.architecture` → added (ARM_64 default)
 - `MicroVMImage.spec.buildRoleArn` → added
 - `MicroVMImage.spec.environmentVariables` → added
+- `MicroVMImage.spec.hooks` → added (per-hook enable/timeout)
+- `MicroVMImage.status.imageVersion` → String type (not int)

@@ -20,7 +20,7 @@ spec:
   # Image reference (required)
   imageRef:
     name: python-sandbox        # Reference to MicroVMImage CR in same namespace
-    version: 3                  # Specific image version (optional, defaults to latest ACTIVE)
+    version: "3.0"              # Specific image version (optional, defaults to latest ACTIVE)
 
   # Networking
   networkRef:
@@ -194,6 +194,9 @@ spec:
   # Base image (Lambda-managed)
   baseImageArn: "arn:aws:lambda:us-east-1::microvm-base-image:al2023/x86_64/standard:latest"
 
+  # CPU architecture
+  architecture: ARM_64          # ARM_64 (default)
+
   # Compute sizing (baseline — peak is 4x automatically)
   memorySizeMB: 2048            # 512, 1024, 2048 (default), 4096, 8192
 
@@ -221,14 +224,14 @@ spec:
 status:
   imageArn: "arn:aws:lambda:us-east-1:123456789012:microvm-image:python-sandbox"
   imageState: Created           # Creating | Created | CreationFailed | Updating | Updated | UpdateFailed
-  latestVersion: 3
-  activeVersion: 3
+  latestVersion: "3.0"
+  activeVersion: "3.0"
   versions:
-    - version: 3
+    - version: "3.0"
       buildState: Successful    # Pending | InProgress | Successful | Failed
       activation: Active        # Active | Inactive (user-controlled)
       builtAt: "2026-06-25T09:00:00Z"
-    - version: 2
+    - version: "2.0"
       buildState: Successful
       activation: Inactive
       builtAt: "2026-06-20T09:00:00Z"
