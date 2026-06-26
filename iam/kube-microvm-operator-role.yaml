@@ -1,0 +1,135 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  KubeMicroVM Operator IAM Role — least-privilege access for managing
+  AWS Lambda MicroVMs from an EKS cluster via Pod Identity or IRSA.
+
+Parameters:
+  ClusterName:
+    Type: String
+    Description: EKS cluster name where the operator runs
+
+  Namespace:
+    Type: String
+    Default: kube-system
+    Description: Kubernetes namespace for the operator ServiceAccount
+
+  ServiceAccountName:
+    Type: String
+    Default: kube-microvm-operator
+    Description: Kubernetes ServiceAccount name used by the operator
+
+  OIDCProviderArn:
+    Type: String
+    Default: ''
+    Description: >-
+      (IRSA only) ARN of the EKS OIDC provider.
+      Leave empty if using EKS Pod Identity.
+
+  UsePodIdentity:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: >-
+      Use EKS Pod Identity trust policy (recommended).
+      Set to false for IRSA trust policy.
+
+Conditions:
+  IsPodIdentity: !Equals [!Ref UsePodIdentity, 'true']
+  IsIRSA: !Not [!Equals [!Ref UsePodIdentity, 'true']]
+
+Resources:
+  OperatorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'kube-microvm-operator-${ClusterName}'
+      Description: !Sub 'KubeMicroVM operator role for cluster ${ClusterName}'
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument: !If
+        - IsPodIdentity
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: pods.eks.amazonaws.com
+              Action:
+                - sts:AssumeRole
+                - sts:TagSession
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Federated: !Ref OIDCProviderArn
+              Action: sts:AssumeRoleWithWebIdentity
+              Condition:
+                StringEquals:
+                  !Sub '${OIDCProviderArn}:sub': !Sub 'system:serviceaccount:${Namespace}:${ServiceAccountName}'
+                  !Sub '${OIDCProviderArn}:aud': 'sts.amazonaws.com'
+      Tags:
+        - Key: kubernetes.io/cluster
+          Value: !Ref ClusterName
+        - Key: kubernetes.io/service-account
+          Value: !Ref ServiceAccountName
+
+  MicroVMPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub 'KubeMicroVMOperatorPolicy-${ClusterName}'
+      Description: Least-privilege policy for KubeMicroVM operator
+      Roles:
+        - !Ref OperatorRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # MicroVM lifecycle management
+          - Sid: MicroVMLifecycle
+            Effect: Allow
+            Action:
+              - lambda:CreateMicroVM
+              - lambda:DescribeMicroVM
+              - lambda:StartMicroVM
+              - lambda:StopMicroVM
+              - lambda:PauseMicroVM
+              - lambda:ResumeMicroVM
+              - lambda:DeleteMicroVM
+              - lambda:ListMicroVMs
+            Resource: !Sub 'arn:aws:lambda:*:${AWS::AccountId}:microvm:*'
+
+          # VPC/networking read access for network validation
+          - Sid: NetworkReadOnly
+            Effect: Allow
+            Action:
+              - ec2:DescribeVpcs
+              - ec2:DescribeSubnets
+              - ec2:DescribeSecurityGroups
+            Resource: '*'
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: !Ref 'AWS::Region'
+
+          # STS for caller identity verification
+          - Sid: CallerIdentity
+            Effect: Allow
+            Action:
+              - sts:GetCallerIdentity
+            Resource: '*'
+
+Outputs:
+  RoleArn:
+    Description: IAM Role ARN — use with EKS Pod Identity Association or IRSA annotation
+    Value: !GetAtt OperatorRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-RoleArn'
+
+  PodIdentityCommand:
+    Description: CLI command to create EKS Pod Identity Association
+    Value: !Sub >-
+      aws eks create-pod-identity-association
+      --cluster-name ${ClusterName}
+      --namespace ${Namespace}
+      --service-account ${ServiceAccountName}
+      --role-arn ${OperatorRole.Arn}
+
+  IRSAAnnotation:
+    Condition: IsIRSA
+    Description: Annotation to add to the ServiceAccount for IRSA
+    Value: !Sub 'eks.amazonaws.com/role-arn: ${OperatorRole.Arn}'
