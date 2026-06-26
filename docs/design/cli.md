@@ -46,17 +46,14 @@ kubectl microvm delete --pool ci-runners --all
 ### Lifecycle Control
 
 ```bash
-# Suspend a running MicroVM
+# Suspend a running MicroVM (preserves state, reduces cost)
 kubectl microvm suspend my-vm
 
 # Resume a suspended MicroVM
 kubectl microvm resume my-vm
 
-# Terminate
+# Terminate (release all resources)
 kubectl microvm terminate my-vm
-
-# Start (alias for setting desiredState=Running on a suspended VM)
-kubectl microvm start my-vm
 ```
 
 ### Pool Management

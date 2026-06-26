@@ -22,13 +22,10 @@ spec:
     name: python-sandbox        # Reference to MicroVMImage CR in same namespace
     version: 3                  # Specific image version (optional, defaults to latest ACTIVE)
 
-  # Compute resources
-  memorySizeMB: 2048            # 512, 1024, 2048, 4096, 8192
-  vcpus: 1                      # Derived from memory (0.25, 0.5, 1, 2, 4)
-
   # Networking
   networkRef:
-    name: private-vpc           # Reference to MicroVMNetwork CR
+    name: private-vpc           # Reference to MicroVMNetwork CR (egress to VPC)
+  ingressConnector: ALL_INGRESS # ALL_INGRESS (default) | NO_INGRESS | custom ARN
 
   # Lifecycle
   desiredState: Running         # Running | Suspended | Terminated
@@ -36,7 +33,11 @@ spec:
     maxIdleDurationSeconds: 900
     suspendedDurationSeconds: 3600
     autoResumeEnabled: true
-  maximumDurationSeconds: 28800 # 8 hours max
+  maximumDurationSeconds: 14400 # Max 28800 (8 hours)
+
+  # Runtime configuration
+  executionRoleArn: "arn:aws:iam::123456789012:role/my-microvm-runtime-role"
+  runHookPayload: '{"tenantId": "tenant-abc", "env": "production"}'
 
   # Template reference (optional — overrides above fields)
   templateRef:
@@ -46,13 +47,11 @@ spec:
   tags:
     team: alpha
     environment: development
-    cost-center: eng-platform
 
 status:
   state: Running                # Pending | Running | Suspending | Suspended | Terminating | Terminated | Failed
   microVmId: "mvm-0abc123def456"
   endpointUrl: "https://mvm-0abc123def456.lambda-url.us-east-1.on.aws"
-  ipAddress: ""                 # Not applicable (service-managed endpoint)
   imageVersion: 3
   lastTransitionTime: "2026-06-25T10:30:00Z"
   observedGeneration: 2
@@ -178,7 +177,7 @@ status:
 
 ### MicroVMImage
 
-Manages the MicroVM image build lifecycle. Each image version represents a Firecracker snapshot built from a Dockerfile.
+Manages the MicroVM image build lifecycle. Each image version represents a Firecracker snapshot built from a Dockerfile. Memory/vCPU sizing is configured here (applies to all MicroVMs running from this image).
 
 ```yaml
 apiVersion: lambda.aws.amazon.com/v1alpha1
@@ -195,23 +194,43 @@ spec:
   # Base image (Lambda-managed)
   baseImageArn: "arn:aws:lambda:us-east-1::microvm-base-image:al2023/x86_64/standard:latest"
 
+  # Compute sizing (baseline — peak is 4x automatically)
+  memorySizeMB: 2048            # 512, 1024, 2048 (default), 4096, 8192
+
   # Build configuration
-  buildTimeout: 600              # seconds
-  readyHookEnabled: true         # Wait for /ready signal during build
+  buildRoleArn: "arn:aws:iam::123456789012:role/MicrovmBuildRole"
+  buildTimeout: 600             # seconds (readyTimeoutInSeconds)
+  readyHookEnabled: true        # Wait for /ready signal during build
+  validateHookEnabled: true     # Run /validate after build
+
+  # Runtime environment (set at build time, shared across all MicroVMs)
+  environmentVariables:
+    APP_ENV: production
+    LOG_LEVEL: info
+
+  # OS capabilities
+  additionalOsCapabilities: []  # ["ALL"] for elevated privileges
+
+  # Hook configuration
+  hookPort: 8080                # Port for lifecycle hook HTTP calls
 
   # Version management
-  autoActivate: true             # Automatically activate successful builds
+  autoActivate: true            # Automatically activate successful builds
+  description: "Python sandbox with Jupyter and common data science libs"
 
 status:
+  imageArn: "arn:aws:lambda:us-east-1:123456789012:microvm-image:python-sandbox"
+  imageState: Created           # Creating | Created | CreationFailed | Updating | Updated | UpdateFailed
   latestVersion: 3
   activeVersion: 3
-  imageArn: "arn:aws:lambda:us-east-1:123456789012:microvm-image:python-sandbox"
   versions:
     - version: 3
-      state: Active              # Pending | InProgress | Successful | Failed | Active | Inactive
+      buildState: Successful    # Pending | InProgress | Successful | Failed
+      activation: Active        # Active | Inactive (user-controlled)
       builtAt: "2026-06-25T09:00:00Z"
     - version: 2
-      state: Inactive
+      buildState: Successful
+      activation: Inactive
       builtAt: "2026-06-20T09:00:00Z"
   conditions:
     - type: Ready
@@ -224,15 +243,17 @@ status:
 
 | Resource | Field | Constraint |
 |----------|-------|-----------|
-| MicroVM | `memorySizeMB` | One of: 512, 1024, 2048, 4096, 8192 |
-| MicroVM | `maximumDurationSeconds` | 60–28800 (1 min to 8 hours) |
-| MicroVM | `idlePolicy.maxIdleDurationSeconds` | 60–3600 |
-| MicroVM | `idlePolicy.suspendedDurationSeconds` | 60–28800 |
+| MicroVM | `maximumDurationSeconds` | 1–28800 (1 sec to 8 hours) |
+| MicroVM | `idlePolicy.maxIdleDurationSeconds` | 1–28800 |
+| MicroVM | `idlePolicy.suspendedDurationSeconds` | 1–28800 |
 | MicroVM | `desiredState` | Running, Suspended, Terminated |
+| MicroVM | `runHookPayload` | Max 16 KB string |
 | MicroVMPool | `replicas` | 0–100 |
 | MicroVMPool | `maxSurge` | 0–10 |
 | MicroVMNetwork | `networkProtocol` | IPv4, DualStack |
-| MicroVMImage | `buildTimeout` | 60–3600 |
+| MicroVMImage | `memorySizeMB` | One of: 512, 1024, 2048, 4096, 8192 |
+| MicroVMImage | `buildTimeout` | 1–3600 |
+| MicroVMImage | `environmentVariables` | Max 50 entries |
 
 ## Owner References
 
