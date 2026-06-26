@@ -162,6 +162,16 @@ jobs:
             --batch-mode --no-transfer-progress \
             -Dquarkus.helm.version=${VERSION} \
             -Dquarkus.container-image.tag=${VERSION}
+
+      - name: Add custom templates and re-package
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          CHART_DIR=operator-controller/target/helm/kubernetes/lambda-vm-operator
+          # Replace generated serviceaccount.yaml with custom (IRSA-aware) and add webhook/networkpolicy
+          cp operator-controller/src/main/helm/templates/*.yaml ${CHART_DIR}/templates/
+          rm -f ${CHART_DIR}/../lambda-vm-operator-${VERSION}.tar.gz
+          helm package ${CHART_DIR} --version ${VERSION} --app-version ${VERSION} \
+            --destination operator-controller/target/helm/kubernetes/
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:

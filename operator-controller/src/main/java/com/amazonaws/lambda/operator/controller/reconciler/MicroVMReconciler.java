@@ -28,6 +28,11 @@ import java.util.concurrent.TimeUnit;
     finalizerName = "lambda.aws.amazon.com/microvm-finalizer",
     retry = GenericRetry.class
 )
+@io.quarkiverse.operatorsdk.annotations.RBACRule(
+    apiGroups = "",
+    resources = {"events"},
+    verbs = {"create", "patch"}
+)
 public class MicroVMReconciler implements Reconciler<MicroVM>, Cleaner<MicroVM> {
 
     private static final Logger LOG = Logger.getLogger(MicroVMReconciler.class);

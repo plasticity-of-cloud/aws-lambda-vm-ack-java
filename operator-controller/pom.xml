@@ -27,6 +27,12 @@
             <groupId>io.quarkiverse.operatorsdk</groupId>
             <artifactId>quarkus-operator-sdk</artifactId>
         </dependency>
+        <!-- RBAC annotation support for extra ClusterRole rules -->
+        <dependency>
+            <groupId>io.quarkiverse.operatorsdk</groupId>
+            <artifactId>quarkus-operator-sdk-annotations</artifactId>
+            <version>7.7.5</version>
+        </dependency>
 
         <!-- Quarkus CDI -->
         <dependency>

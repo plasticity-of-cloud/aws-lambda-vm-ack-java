@@ -1,0 +1,88 @@
+{{- if .Values.webhook.enabled }}
+{{- if .Values.webhook.certManager.enabled }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: lambda-vm-webhook-tls
+  namespace: {{ .Release.Namespace }}
+spec:
+  secretName: lambda-vm-webhook-tls
+  dnsNames:
+    - lambda-vm-webhook.{{ .Release.Namespace }}.svc
+    - lambda-vm-webhook.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    name: {{ .Values.webhook.certManager.issuerRef.name }}
+    kind: {{ .Values.webhook.certManager.issuerRef.kind }}
+  duration: 8760h
+  renewBefore: 720h
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lambda-vm-webhook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: operator-webhook
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 443
+      targetPort: 8443
+      protocol: TCP
+      name: https
+  selector:
+    app.kubernetes.io/name: operator-webhook
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: lambda-vm-mutating
+  {{- if .Values.webhook.certManager.enabled }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/lambda-vm-webhook-tls
+  {{- end }}
+webhooks:
+  - name: mutate.microvms.lambda.aws.amazon.com
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Ignore
+    clientConfig:
+      service:
+        name: lambda-vm-webhook
+        namespace: {{ .Release.Namespace }}
+        path: /mutate-microvm
+        port: 443
+    rules:
+      - apiGroups: ["lambda.aws.amazon.com"]
+        apiVersions: ["v1alpha1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["microvms"]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: lambda-vm-validating
+  {{- if .Values.webhook.certManager.enabled }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/lambda-vm-webhook-tls
+  {{- end }}
+webhooks:
+  - name: validate.microvms.lambda.aws.amazon.com
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: lambda-vm-webhook
+        namespace: {{ .Release.Namespace }}
+        path: /validate-microvm
+        port: 443
+    rules:
+      - apiGroups: ["lambda.aws.amazon.com"]
+        apiVersions: ["v1alpha1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["microvms"]
+{{- end }}

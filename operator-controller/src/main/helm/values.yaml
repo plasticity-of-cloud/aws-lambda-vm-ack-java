@@ -1,0 +1,15 @@
+serviceAccount:
+  # For IRSA: set to the IAM role ARN (e.g. arn:aws:iam::123456789012:role/lambda-vm-operator)
+  # For EKS Pod Identity (recommended): leave empty and create a PodIdentityAssociation via EKS console/API
+  irsaRoleArn: ""
+
+webhook:
+  enabled: true
+  certManager:
+    enabled: true
+    issuerRef:
+      name: selfsigned-issuer
+      kind: ClusterIssuer
+
+networkPolicy:
+  enabled: true

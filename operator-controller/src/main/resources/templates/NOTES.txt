@@ -1,0 +1,27 @@
+Lambda VM ACK Operator installed.
+
+Operator pod:
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name=operator-controller
+
+CRDs installed:
+  kubectl get crd | grep lambda.aws.amazon.com
+
+AWS IAM Setup:
+{{- if and .Values.serviceAccount.irsaRoleArn (ne .Values.serviceAccount.irsaRoleArn "") }}
+  IRSA role ARN configured: {{ .Values.serviceAccount.irsaRoleArn }}
+{{- else }}
+  No IAM role configured. Choose one:
+
+  Option 1 - EKS Pod Identity (recommended):
+    aws eks create-pod-identity-association \
+      --cluster-name <CLUSTER> \
+      --namespace {{ .Release.Namespace }} \
+      --service-account lambda-vm-operator \
+      --role-arn arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
+
+  Option 2 - IRSA:
+    kubectl annotate serviceaccount lambda-vm-operator \
+      -n {{ .Release.Namespace }} \
+      eks.amazonaws.com/role-arn=arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
+    # Or reinstall with: --set serviceAccount.irsaRoleArn=arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
+{{- end }}
