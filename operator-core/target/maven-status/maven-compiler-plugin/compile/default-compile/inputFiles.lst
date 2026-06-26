@@ -2,6 +2,11 @@
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/enums/MicroVMState.java
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/Condition.java
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVM.java
+/home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVMImage.java
+/home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVMImageSource.java
+/home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVMImageSpec.java
+/home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVMImageStatus.java
+/home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVMImageVersionInfo.java
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVMNetwork.java
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVMNetworkSpec.java
 /home/ubuntu/projects/pl-cloud/KubeMicroVM/operator-core/src/main/java/ai/codriverlabs/microvm/operator/core/model/MicroVMPool.java
