@@ -42,7 +42,7 @@ helm install kube-microvm-operator oci://ghcr.io/plasticity-of-cloud/helm/kube-m
 ```bash
 aws eks create-pod-identity-association \
   --cluster-name <CLUSTER> \
-  --namespace kube-system \
+  --namespace kube-microvm \
   --service-account kube-microvm-operator \
   --role-arn arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
 ```

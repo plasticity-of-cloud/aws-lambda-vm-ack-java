@@ -10,7 +10,7 @@ Parameters:
 
   Namespace:
     Type: String
-    Default: kube-system
+    Default: kube-microvm
     Description: Kubernetes namespace for the operator ServiceAccount
 
   ServiceAccountName:

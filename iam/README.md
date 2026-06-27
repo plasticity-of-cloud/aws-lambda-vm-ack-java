@@ -25,7 +25,7 @@ ROLE_ARN=$(aws cloudformation describe-stacks \
 # 3. Create the Pod Identity Association
 aws eks create-pod-identity-association \
   --cluster-name <CLUSTER_NAME> \
-  --namespace kube-system \
+  --namespace kube-microvm \
   --service-account kube-microvm-operator \
   --role-arn $ROLE_ARN
 ```
