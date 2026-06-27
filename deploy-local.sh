@@ -117,6 +117,14 @@ if [[ -z "$ROLE_ARN" ]] && ! $SKIP_POD_IDENTITY && ! $DRY_RUN; then
 
   ROLE_ARN_PI=$(aws iam get-role --role-name "${POD_IDENTITY_ROLE_NAME}" --query 'Role.Arn' --output text)
 
+  # Tag role for EKS-D-Xpress managed trust policy
+  if $EKS_DX; then
+    echo "    Tagging role with eks-dx-managed=true"
+    aws iam tag-role \
+      --role-name "${POD_IDENTITY_ROLE_NAME}" \
+      --tags Key=eks-dx-managed,Value=true
+  fi
+
   # Create association if it doesn't exist
   if $EKS_DX; then
     # Check via eks-dx CLI
