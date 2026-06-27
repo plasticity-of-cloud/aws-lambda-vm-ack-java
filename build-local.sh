@@ -42,6 +42,11 @@ REGION=$(aws configure get region || echo "ap-south-1")
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 [[ -n "$REGISTRY" ]] || REGISTRY="$ECR_REGISTRY"
 
+# If registry is an ECR URL, extract region from it
+if [[ "$REGISTRY" =~ \.dkr\.ecr\.([a-z0-9-]+)\.amazonaws\.com ]]; then
+  REGION="${BASH_REMATCH[1]}"
+fi
+
 IMAGE_TAG=$(git describe --tags 2>/dev/null | sed 's/^v//;s/-[0-9]*-g[0-9a-f]*$//' || echo "dev")
 echo "==> KubeMicroVM build  native=${NATIVE}  skipTests=${SKIP_TESTS}  only=${ONLY}  push=${PUSH}  tag=${IMAGE_TAG}"
 
