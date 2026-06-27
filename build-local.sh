@@ -50,6 +50,9 @@ if $PUSH; then
   echo "==> ECR login (${REGION})"
   aws ecr get-login-password --region "${REGION}" \
     | docker login --username AWS --password-stdin "${REGISTRY}"
+  echo "==> ECR Public login (for base images)"
+  aws ecr-public get-login-password --region us-east-1 \
+    | docker login --username AWS --password-stdin public.ecr.aws
 fi
 
 ensure_ecr_repo() {

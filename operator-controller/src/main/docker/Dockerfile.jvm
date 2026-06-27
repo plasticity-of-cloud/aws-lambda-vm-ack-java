@@ -1,4 +1,4 @@
-FROM quay.io/quarkus/quarkus-micro-image:2.0
+FROM public.ecr.aws/amazoncorretto/amazoncorretto:25-al2023-headless
 
 ARG APP_DIR=/deployments
 WORKDIR ${APP_DIR}
