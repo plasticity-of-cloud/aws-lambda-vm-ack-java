@@ -21,6 +21,9 @@ public class ImageUpdateCommand implements Runnable {
     @Option(names = {"--s3-bucket"}, description = "S3 bucket (if changing)")
     String s3Bucket;
 
+    @Option(names = {"--build-role-arn"}, description = "IAM role ARN Lambda assumes during image build")
+    String buildRoleArn;
+
     @Option(names = {"--wait"}, description = "Wait for build to complete and print state transitions")
     boolean wait;
 
@@ -48,6 +51,7 @@ public class ImageUpdateCommand implements Runnable {
             MicroVMImageSource source = image.getSpec().getSource();
             if (s3Bucket != null) source.setS3Bucket(s3Bucket);
             source.setS3Key(s3Key);
+            if (buildRoleArn != null) image.getSpec().setBuildRoleArn(buildRoleArn);
 
             client.resource(image).inNamespace(namespace).update();
             System.out.printf("microvm-image/%s updated (new source: s3://%s/%s) — build will start%n",

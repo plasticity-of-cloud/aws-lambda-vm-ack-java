@@ -38,6 +38,7 @@ kubectl microvm image create \
   --s3-bucket "${BUCKET}" \
   --s3-key "${S3_KEY}" \
   --base-image "${BASE_IMAGE_ARN}" \
+  --build-role-arn "${ROLE_ARN}" \
   --namespace "${NAMESPACE}" \
   --wait
 

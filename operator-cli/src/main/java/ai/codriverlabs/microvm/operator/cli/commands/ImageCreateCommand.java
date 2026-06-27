@@ -25,10 +25,10 @@ public class ImageCreateCommand implements Runnable {
     @Option(names = {"--base-image"}, description = "Base image ARN")
     String baseImageArn;
 
-    @Option(names = {"--build-timeout"}, defaultValue = "600", description = "Build timeout in seconds (default: 600)")
-    int buildTimeout;
+    @Option(names = {"--build-role-arn"}, description = "IAM role ARN Lambda assumes during image build")
+    String buildRoleArn;
 
-    @Option(names = {"--auto-activate"}, defaultValue = "true", description = "Auto-activate on successful build (default: true)")
+    @Option(names = {"--auto-activate"}, defaultValue = "true", description = "Auto-activate on successful build")
     boolean autoActivate;
 
     @Option(names = {"--wait"}, description = "Wait for build to complete and print state transitions")
@@ -58,7 +58,7 @@ public class ImageCreateCommand implements Runnable {
             source.setS3Key(s3Key);
             spec.setSource(source);
             spec.setBaseImageArn(baseImageArn);
-            spec.setBuildTimeoutSeconds(buildTimeout);
+            spec.setBuildRoleArn(buildRoleArn);
             spec.setAutoActivate(autoActivate);
             image.setSpec(spec);
 
