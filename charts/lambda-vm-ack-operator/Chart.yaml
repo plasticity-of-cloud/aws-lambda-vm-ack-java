@@ -4,7 +4,7 @@ description: Kubernetes operator for AWS Lambda MicroVMs following the ACK patte
 type: application
 version: 0.1.0
 appVersion: "1.0.0-SNAPSHOT"
-kubeVersion: ">=1.27.0-0 <1.33.0-0"
+kubeVersion: ">=1.27.0-0"
 keywords:
   - kubernetes
   - operator
