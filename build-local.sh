@@ -85,7 +85,9 @@ if [[ "$ONLY" == "all" || "$ONLY" == "operator" ]]; then
       -Dquarkus.container-image.registry=${REGISTRY} \
       -Dquarkus.container-image.group=plasticity-of-cloud \
       -Dquarkus.container-image.name=kube-microvm-operator \
-      -Dquarkus.container-image.tag=${IMAGE_TAG}"
+      -Dquarkus.container-image.tag=${IMAGE_TAG} \
+      -Dquarkus.docker.buildx.platform=linux/arm64 \
+      -Dquarkus.docker.buildx.builder-name=arm64-builder"
   fi
 
   if $NATIVE; then
