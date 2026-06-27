@@ -1,18 +1,12 @@
-FROM registry.access.redhat.com/ubi9/ubi9-minimal:9.4
-
-ARG JAVA_PACKAGE=java-25-openjdk-headless
-RUN microdnf install -y ${JAVA_PACKAGE} && microdnf clean all
-
-ENV JAVA_HOME=/usr/lib/jvm/jre-25
-ENV LANG=en_US.UTF-8
+FROM quay.io/quarkus/quarkus-micro-image:2.0
 
 ARG APP_DIR=/deployments
 WORKDIR ${APP_DIR}
 
-COPY --chown=1001:root quarkus-run.jar ${APP_DIR}/quarkus-run.jar
-COPY --chown=1001:root app/ ${APP_DIR}/app/
-COPY --chown=1001:root lib/ ${APP_DIR}/lib/
-COPY --chown=1001:root quarkus/ ${APP_DIR}/quarkus/
+COPY --chown=1001:root target/quarkus-app/lib/ ${APP_DIR}/lib/
+COPY --chown=1001:root target/quarkus-app/quarkus-run.jar ${APP_DIR}/quarkus-run.jar
+COPY --chown=1001:root target/quarkus-app/app/ ${APP_DIR}/app/
+COPY --chown=1001:root target/quarkus-app/quarkus/ ${APP_DIR}/quarkus/
 
 USER 1001
 
