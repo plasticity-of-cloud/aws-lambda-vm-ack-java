@@ -368,9 +368,24 @@ public class MicroVMReconciler implements Reconciler<MicroVM>, Cleaner<MicroVM> 
     private void syncTags(MicroVM resource, String microvmId) {
         if (microvmId == null) return;
         Map<String, String> labels = resource.getMetadata().getLabels();
-        if (labels == null || labels.isEmpty()) return;
         try {
-            microVMClient.tagResource(microvmId, labels).get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            // Fetch current AWS tags
+            Map<String, String> awsTags = microVMClient.listTags(microvmId).get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            // Add/update labels that changed
+            if (labels != null && !labels.isEmpty()) {
+                microVMClient.tagResource(microvmId, labels).get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            }
+
+            // Remove tags whose keys no longer exist in labels
+            if (awsTags != null) {
+                java.util.List<String> toRemove = awsTags.keySet().stream()
+                        .filter(k -> labels == null || !labels.containsKey(k))
+                        .collect(java.util.stream.Collectors.toList());
+                if (!toRemove.isEmpty()) {
+                    microVMClient.untagResource(microvmId, toRemove).get(AWS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                }
+            }
         } catch (Exception e) {
             LOG.warnf("Failed to sync tags to MicroVM %s: %s", microvmId, e.getMessage());
         }

@@ -8,7 +8,9 @@ import picocli.CommandLine.Command;
         ImageListCommand.class,
         ImageDescribeCommand.class,
         ImageUpdateCommand.class,
-        ImageDeleteCommand.class
+        ImageDeleteCommand.class,
+        ImageBaseImagesCommand.class,
+        ImageVersionDeleteCommand.class
     },
     mixinStandardHelpOptions = true)
 public class ImageCommand {
