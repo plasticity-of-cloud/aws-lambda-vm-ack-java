@@ -13,6 +13,9 @@ public class MicroVMImageStatus {
     private String imageArn;
     private String latestVersion;   // String per API (e.g. "1.0")
     private String activeVersion;
+    /** Version build state: PENDING, IN_PROGRESS, SUCCESSFUL, FAILED */
+    private String latestVersionState;
+    private String latestVersionStateReason;
     private List<MicroVMImageVersionInfo> versions = new ArrayList<>();
     private Long observedGeneration;
 
@@ -27,6 +30,12 @@ public class MicroVMImageStatus {
 
     public String getActiveVersion() { return activeVersion; }
     public void setActiveVersion(String activeVersion) { this.activeVersion = activeVersion; }
+
+    public String getLatestVersionState() { return latestVersionState; }
+    public void setLatestVersionState(String latestVersionState) { this.latestVersionState = latestVersionState; }
+
+    public String getLatestVersionStateReason() { return latestVersionStateReason; }
+    public void setLatestVersionStateReason(String r) { this.latestVersionStateReason = r; }
 
     public List<MicroVMImageVersionInfo> getVersions() { return versions; }
     public void setVersions(List<MicroVMImageVersionInfo> versions) { this.versions = versions; }

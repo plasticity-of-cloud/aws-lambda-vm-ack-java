@@ -22,6 +22,9 @@ spec:
         - name: State
           type: string
           jsonPath: .status.imageState
+        - name: VersionState
+          type: string
+          jsonPath: .status.latestVersionState
         - name: ARN
           type: string
           jsonPath: .status.imageArn
@@ -67,6 +70,11 @@ spec:
                 imageState:
                   type: string
                   enum: [CREATING, CREATED, CREATE_FAILED, UPDATING, UPDATED, UPDATE_FAILED, DELETING, DELETE_FAILED, DELETED]
+                latestVersionState:
+                  type: string
+                  enum: [PENDING, IN_PROGRESS, SUCCESSFUL, FAILED, DELETE_FAILED]
+                latestVersionStateReason:
+                  type: string
                 latestVersion:
                   type: string
                 activeVersion:

@@ -1,6 +1,7 @@
 package ai.codriverlabs.microvm.operator.controller.reconciler;
 
 import ai.codriverlabs.microvm.aws.lambdamicrovms.model.MicrovmImageState;
+import ai.codriverlabs.microvm.aws.lambdamicrovms.model.MicrovmImageVersionState;
 import ai.codriverlabs.microvm.operator.controller.aws.MicroVMImageClient;
 import ai.codriverlabs.microvm.operator.core.model.MicroVMImage;
 import ai.codriverlabs.microvm.operator.core.model.MicroVMImageSpec;
@@ -52,6 +53,7 @@ public class MicroVMImageReconciler implements Reconciler<MicroVMImage>, Cleaner
                 status.setImageArn(response.imageArn());
                 status.setImageState(response.stateAsString());
                 status.setLatestVersion(response.imageVersion());
+                status.setLatestVersionState(MicrovmImageVersionState.PENDING.toString());
                 status.setObservedGeneration(resource.getMetadata().getGeneration());
                 LOG.infof("Image %s created: arn=%s state=%s", name, response.imageArn(), response.stateAsString());
                 return UpdateControl.patchStatus(resource).rescheduleAfter(POLL_INTERVAL);
@@ -60,22 +62,38 @@ public class MicroVMImageReconciler implements Reconciler<MicroVMImage>, Cleaner
             // --- UPDATE (spec changed) ---
             long gen = resource.getMetadata().getGeneration() != null ? resource.getMetadata().getGeneration() : 0L;
             long observed = status.getObservedGeneration() != null ? status.getObservedGeneration() : 0L;
-            if (gen > observed && isBuildSettled(status.getImageState())) {
+            if (gen > observed && isBuildSettled(status.getImageState()) && !isVersionBuilding(status.getLatestVersionState())) {
                 String s3Uri = "s3://" + spec.getSource().getS3Bucket() + "/" + spec.getSource().getS3Key();
                 LOG.infof("Updating image %s (generation %d -> %d)", name, observed, gen);
                 var response = imageClient.updateImage(
                         status.getImageArn(), s3Uri, spec.getBaseImageArn(), spec.getBuildRoleArn())
                         .get(TIMEOUT_S, TimeUnit.SECONDS);
                 status.setImageState(response.stateAsString());
+                status.setLatestVersion(response.imageVersion());
+                status.setLatestVersionState(MicrovmImageVersionState.PENDING.toString());
                 status.setObservedGeneration(gen);
                 return UpdateControl.patchStatus(resource).rescheduleAfter(POLL_INTERVAL);
             }
 
-            // --- POLL ---
-            if (!isBuildSettled(status.getImageState())) {
-                var response = imageClient.getImage(status.getImageArn()).get(TIMEOUT_S, TimeUnit.SECONDS);
-                status.setImageState(response.stateAsString());
-                LOG.infof("Image %s state: %s", name, response.stateAsString());
+            // --- POLL --- while image or version build is in progress
+            if (!isBuildSettled(status.getImageState()) || isVersionBuilding(status.getLatestVersionState())) {
+                // Poll image state
+                var imageResp = imageClient.getImage(status.getImageArn()).get(TIMEOUT_S, TimeUnit.SECONDS);
+                status.setImageState(imageResp.stateAsString());
+
+                // Poll version state if we have a version to track
+                if (status.getLatestVersion() != null) {
+                    var versionResp = imageClient.getImageVersion(status.getImageArn(), status.getLatestVersion())
+                            .get(TIMEOUT_S, TimeUnit.SECONDS);
+                    status.setLatestVersionState(versionResp.stateAsString());
+                    if (versionResp.stateReason() != null) {
+                        status.setLatestVersionStateReason(versionResp.stateReason());
+                    }
+                    LOG.infof("Image %s state=%s version=%s versionState=%s",
+                            name, imageResp.stateAsString(), status.getLatestVersion(), versionResp.stateAsString());
+                } else {
+                    LOG.infof("Image %s state=%s", name, imageResp.stateAsString());
+                }
                 return UpdateControl.patchStatus(resource).rescheduleAfter(POLL_INTERVAL);
             }
 
@@ -104,14 +122,20 @@ public class MicroVMImageReconciler implements Reconciler<MicroVMImage>, Cleaner
         return DeleteControl.defaultDelete();
     }
 
-    // States that mean a build is still in progress
-    private boolean isBuildSettled(String state) {
-        if (state == null) return false;
-        return state.equals(MicrovmImageState.CREATED.toString())
-                || state.equals(MicrovmImageState.UPDATED.toString())
-                || state.equals(MicrovmImageState.CREATE_FAILED.toString())
-                || state.equals(MicrovmImageState.UPDATE_FAILED.toString())
-                || state.equals(MicrovmImageState.DELETE_FAILED.toString());
+    // Build is settled when image state is final AND version has reached a terminal state
+    private boolean isBuildSettled(String imageState) {
+        if (imageState == null) return false;
+        return imageState.equals(MicrovmImageState.CREATED.toString())
+                || imageState.equals(MicrovmImageState.UPDATED.toString())
+                || imageState.equals(MicrovmImageState.CREATE_FAILED.toString())
+                || imageState.equals(MicrovmImageState.UPDATE_FAILED.toString())
+                || imageState.equals(MicrovmImageState.DELETE_FAILED.toString());
+    }
+
+    private boolean isVersionBuilding(String versionState) {
+        if (versionState == null) return true; // unknown = assume still building
+        return versionState.equals(MicrovmImageVersionState.PENDING.toString())
+                || versionState.equals(MicrovmImageVersionState.IN_PROGRESS.toString());
     }
 
     private MicroVMImageStatus ensureStatus(MicroVMImage resource) {
