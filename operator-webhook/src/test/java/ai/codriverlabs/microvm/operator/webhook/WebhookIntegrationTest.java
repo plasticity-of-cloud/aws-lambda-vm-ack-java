@@ -37,7 +37,7 @@ class WebhookIntegrationTest {
         // autoResumeEnabled is null - should get default
 
         // Step 1: Mutate
-        MicroVMSpec mutated = mutator.applyDefaults(spec);
+        MicroVMSpec mutated = mutator.applyDefaults(spec, "default");
         assertEquals(512, mutated.getMaximumDurationSeconds()); // explicit, not overridden
         assertTrue(mutated.getAutoResumeEnabled()); // defaulted
 
@@ -108,7 +108,7 @@ class WebhookIntegrationTest {
         spec.setSuspendedDurationSeconds(600);
         spec.setNetworkRef("custom-network");
 
-        MicroVMSpec mutated = mutator.applyDefaults(spec);
+        MicroVMSpec mutated = mutator.applyDefaults(spec, "default");
 
         assertEquals("python-sandbox", mutated.getImageRef());
         assertEquals(1024, mutated.getMaximumDurationSeconds());

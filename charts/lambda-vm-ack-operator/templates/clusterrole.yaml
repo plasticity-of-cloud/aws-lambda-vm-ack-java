@@ -6,7 +6,7 @@ metadata:
     {{- include "lambda-vm-ack-operator.labels" . | nindent 4 }}
 rules:
   - apiGroups: ["lambda.aws.amazon.com"]
-    resources: ["microvms", "microvmpools", "microvmtemplates", "microvmnetworks", "microvmimages"]
+    resources: ["microvms", "microvmpools", "microvmtemplates", "microvmnetworks", "microvmimages", "microvmclasses"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["lambda.aws.amazon.com"]
     resources: ["microvms/status", "microvmpools/status", "microvmimages/status"]

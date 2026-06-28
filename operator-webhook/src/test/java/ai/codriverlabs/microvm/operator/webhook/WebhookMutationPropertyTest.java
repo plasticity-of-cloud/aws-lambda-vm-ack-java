@@ -18,14 +18,14 @@ class WebhookMutationPropertyTest {
 
     @Property(tries = 100)
     void nullMaxDurationGetsDefault(@ForAll("specWithNullMaxDuration") MicroVMSpec spec) {
-        MicroVMSpec mutated = webhook.applyDefaults(spec);
+        MicroVMSpec mutated = webhook.applyDefaults(spec, "default");
         assert mutated.getMaximumDurationSeconds() == 28800 :
             "Null maximumDurationSeconds should default to 28800, got: " + mutated.getMaximumDurationSeconds();
     }
 
     @Property(tries = 100)
     void nullAutoResumeGetsDefault(@ForAll("specWithNullAutoResume") MicroVMSpec spec) {
-        MicroVMSpec mutated = webhook.applyDefaults(spec);
+        MicroVMSpec mutated = webhook.applyDefaults(spec, "default");
         assert mutated.getAutoResumeEnabled() == true :
             "Null autoResumeEnabled should default to true, got: " + mutated.getAutoResumeEnabled();
     }
@@ -33,7 +33,7 @@ class WebhookMutationPropertyTest {
     @Property(tries = 100)
     void explicitMaxDurationPreserved(@ForAll("specWithExplicitMaxDuration") MicroVMSpec spec) {
         Integer original = spec.getMaximumDurationSeconds();
-        MicroVMSpec mutated = webhook.applyDefaults(spec);
+        MicroVMSpec mutated = webhook.applyDefaults(spec, "default");
         assert mutated.getMaximumDurationSeconds().equals(original) :
             "Explicit maximumDurationSeconds " + original + " should be preserved, got: " + mutated.getMaximumDurationSeconds();
     }
@@ -46,7 +46,7 @@ class WebhookMutationPropertyTest {
         String originalRegion = spec.getRegion();
         DesiredState originalDesired = spec.getDesiredState();
 
-        webhook.applyDefaults(spec);
+        webhook.applyDefaults(spec, "default");
 
         assert Objects.equals(spec.getImageRef(), originalImageRef) : "ImageRef changed";
         assert Objects.equals(spec.getMaxIdleDurationSeconds(), originalVcpus) : "MaxIdleDurationSeconds changed";

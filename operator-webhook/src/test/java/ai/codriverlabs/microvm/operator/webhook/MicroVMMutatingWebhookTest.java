@@ -24,7 +24,7 @@ class MicroVMMutatingWebhookTest {
         spec.setMaximumDurationSeconds(null);
         spec.setMaxIdleDurationSeconds(2);
 
-        MicroVMSpec mutated = webhook.applyDefaults(spec);
+        MicroVMSpec mutated = webhook.applyDefaults(spec, "default");
         assertEquals(28800, mutated.getMaximumDurationSeconds());
     }
 
@@ -35,7 +35,7 @@ class MicroVMMutatingWebhookTest {
         spec.setMaximumDurationSeconds(512);
         spec.setAutoResumeEnabled(null);
 
-        MicroVMSpec mutated = webhook.applyDefaults(spec);
+        MicroVMSpec mutated = webhook.applyDefaults(spec, "default");
         assertTrue(mutated.getAutoResumeEnabled());
     }
 
@@ -46,7 +46,7 @@ class MicroVMMutatingWebhookTest {
         spec.setMaximumDurationSeconds(1024);
         spec.setMaxIdleDurationSeconds(4);
 
-        MicroVMSpec mutated = webhook.applyDefaults(spec);
+        MicroVMSpec mutated = webhook.applyDefaults(spec, "default");
         assertEquals(1024, mutated.getMaximumDurationSeconds());
     }
 
@@ -57,7 +57,7 @@ class MicroVMMutatingWebhookTest {
         spec.setMaximumDurationSeconds(512);
         spec.setAutoResumeEnabled(false);
 
-        MicroVMSpec mutated = webhook.applyDefaults(spec);
+        MicroVMSpec mutated = webhook.applyDefaults(spec, "default");
         assertFalse(mutated.getAutoResumeEnabled());
     }
 
@@ -71,7 +71,7 @@ class MicroVMMutatingWebhookTest {
         spec.setNetworkRef("my-network");
         spec.setRegion("eu-west-1");
 
-        MicroVMSpec mutated = webhook.applyDefaults(spec);
+        MicroVMSpec mutated = webhook.applyDefaults(spec, "default");
         assertEquals("python-sandbox", mutated.getImageRef());
         assertEquals(768, mutated.getMaximumDurationSeconds());
         assertEquals(3, mutated.getMaxIdleDurationSeconds());

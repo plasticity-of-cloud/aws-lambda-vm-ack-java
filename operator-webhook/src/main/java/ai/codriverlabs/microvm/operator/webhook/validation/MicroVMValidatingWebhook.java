@@ -79,7 +79,23 @@ public class MicroVMValidatingWebhook {
         return errors;
     }
 
-    @POST
+    public void validateClassName(MicroVMSpec spec, String namespace, List<String> errors) {
+        String className = spec.getClassName();
+        if (className == null || className.isBlank()) return; // optional — no-op
+        if (kubernetesClient == null) return;
+        try {
+            var clazz = kubernetesClient.resources(
+                    ai.codriverlabs.microvm.operator.core.model.MicroVMClass.class)
+                    .inNamespace(namespace).withName(className).get();
+            if (clazz == null) {
+                errors.add(String.format(
+                        "spec.className '%s' not found in namespace '%s'", className, namespace));
+            }
+        } catch (Exception e) {
+            LOG.warnf("Error looking up MicroVMClass %s/%s: %s", namespace, className, e.getMessage());
+        }
+    }
+
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public AdmissionReview validate(AdmissionReview review) {
@@ -103,6 +119,7 @@ public class MicroVMValidatingWebhook {
                 validateRuntime(spec, errors);
                 validateTimeout(spec, errors);
                 validateNetworkRef(spec, request.getNamespace(), errors);
+                validateClassName(spec, request.getNamespace(), errors);
             }
 
             // Validate namespace permission

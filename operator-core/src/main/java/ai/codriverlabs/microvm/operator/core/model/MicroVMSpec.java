@@ -20,6 +20,13 @@ public class MicroVMSpec {
     private String imageRef;
     private String imageVersion;
 
+    /**
+     * Optional reference to a MicroVMClass that defines runtime defaults
+     * (idle policy, networking, sizing). Fields explicitly set in this spec
+     * take precedence over the class values.
+     */
+    private String className;
+
     // Networking — ARNs for inbound/outbound connectors (see docs/aws-microvms-official/05-networking.md)
     private List<String> ingressNetworkConnectors = new ArrayList<>();
     private List<String> egressNetworkConnectors = new ArrayList<>();
@@ -52,6 +59,9 @@ public class MicroVMSpec {
 
     public String getImageVersion() { return imageVersion; }
     public void setImageVersion(String imageVersion) { this.imageVersion = imageVersion; }
+
+    public String getClassName() { return className; }
+    public void setClassName(String className) { this.className = className; }
 
     public List<String> getIngressNetworkConnectors() { return ingressNetworkConnectors; }
     public void setIngressNetworkConnectors(List<String> v) { this.ingressNetworkConnectors = v; }
