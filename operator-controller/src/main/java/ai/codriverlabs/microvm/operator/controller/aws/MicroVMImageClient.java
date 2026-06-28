@@ -2,6 +2,7 @@ package ai.codriverlabs.microvm.operator.controller.aws;
 
 import ai.codriverlabs.microvm.aws.lambdamicrovms.LambdaMicrovmsAsyncClient;
 import ai.codriverlabs.microvm.aws.lambdamicrovms.model.*;
+import java.util.List;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -62,6 +63,22 @@ public class MicroVMImageClient {
     public CompletableFuture<DeleteMicrovmImageResponse> deleteImage(String imageIdentifier) {
         return sdk.deleteMicrovmImage(DeleteMicrovmImageRequest.builder()
                 .imageIdentifier(imageIdentifier)
+                .build());
+    }
+
+    public CompletableFuture<List<MicrovmImageVersionSummary>> listVersions(String imageIdentifier) {
+        return sdk.listMicrovmImageVersions(ListMicrovmImageVersionsRequest.builder()
+                .imageIdentifier(imageIdentifier)
+                .build())
+                .thenApply(r -> r.items());
+    }
+
+    public CompletableFuture<UpdateMicrovmImageVersionResponse> activateVersion(
+            String imageIdentifier, String imageVersion) {
+        return sdk.updateMicrovmImageVersion(UpdateMicrovmImageVersionRequest.builder()
+                .imageIdentifier(imageIdentifier)
+                .imageVersion(imageVersion)
+                .status(MicrovmImageVersionStatus.ACTIVE)
                 .build());
     }
 

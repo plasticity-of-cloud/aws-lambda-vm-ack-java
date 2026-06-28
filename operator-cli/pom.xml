@@ -22,6 +22,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Generated AWS Lambda MicroVMs SDK client (for token generation) -->
+        <dependency>
+            <groupId>ai.codriverlabs</groupId>
+            <artifactId>operator-aws-client</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Quarkus Picocli -->
         <dependency>
             <groupId>io.quarkus</groupId>

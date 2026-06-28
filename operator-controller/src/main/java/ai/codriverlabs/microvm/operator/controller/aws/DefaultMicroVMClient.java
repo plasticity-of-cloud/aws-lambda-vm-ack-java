@@ -9,6 +9,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sts.StsClient;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @ApplicationScoped
@@ -79,6 +80,23 @@ public class DefaultMicroVMClient implements MicroVMClient {
     public CompletableFuture<Void> terminateMicroVM(String microvmId) {
         return sdk.terminateMicrovm(TerminateMicrovmRequest.builder().microvmIdentifier(microvmId).build())
                 .thenApply(r -> null);
+    }
+
+    @Override
+    public CompletableFuture<Map<String, String>> createAuthToken(
+            String microvmId, int expirationMinutes, boolean allPorts) {
+        var portsBuilder = PortSpecification.builder();
+        if (allPorts) {
+            portsBuilder.allPorts(Unit.builder().build());
+        } else {
+            portsBuilder.port(8080);
+        }
+        return sdk.createMicrovmAuthToken(CreateMicrovmAuthTokenRequest.builder()
+                .microvmIdentifier(microvmId)
+                .expirationInMinutes(expirationMinutes)
+                .allowedPorts(portsBuilder.build())
+                .build())
+                .thenApply(r -> r.authToken());
     }
 
     @PreDestroy

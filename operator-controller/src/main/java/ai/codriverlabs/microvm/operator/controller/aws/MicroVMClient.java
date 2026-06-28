@@ -1,5 +1,6 @@
 package ai.codriverlabs.microvm.operator.controller.aws;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -21,4 +22,15 @@ public interface MicroVMClient {
 
     /** Calls TerminateMicrovm — terminates a MicroVM and releases all resources. */
     CompletableFuture<Void> terminateMicroVM(String microvmId);
+
+    /**
+     * Calls CreateMicrovmAuthToken — generates a short-lived JWE token for connecting
+     * to the MicroVM's HTTPS endpoint via the X-aws-proxy-auth header.
+     *
+     * @param microvmId          the MicroVM identifier
+     * @param expirationMinutes  token lifetime in minutes
+     * @param allPorts           if true, token allows access to all ports; otherwise port 8080 only
+     */
+    CompletableFuture<Map<String, String>> createAuthToken(
+            String microvmId, int expirationMinutes, boolean allPorts);
 }

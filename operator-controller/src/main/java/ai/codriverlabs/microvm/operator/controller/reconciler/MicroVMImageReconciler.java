@@ -89,6 +89,17 @@ public class MicroVMImageReconciler implements Reconciler<MicroVMImage>, Cleaner
                     if (versionResp.stateReason() != null) {
                         status.setLatestVersionStateReason(versionResp.stateReason());
                     }
+
+                    // Auto-activate once version reaches SUCCESSFUL
+                    boolean autoActivate = spec.getAutoActivate() == null || spec.getAutoActivate();
+                    if (MicrovmImageVersionState.SUCCESSFUL.toString().equals(versionResp.stateAsString())
+                            && autoActivate) {
+                        LOG.infof("Auto-activating image %s version %s", name, status.getLatestVersion());
+                        imageClient.activateVersion(status.getImageArn(), status.getLatestVersion())
+                                .get(TIMEOUT_S, TimeUnit.SECONDS);
+                        status.setActiveVersion(status.getLatestVersion());
+                    }
+
                     LOG.infof("Image %s state=%s version=%s versionState=%s",
                             name, imageResp.stateAsString(), status.getLatestVersion(), versionResp.stateAsString());
                 } else {
@@ -97,7 +108,19 @@ public class MicroVMImageReconciler implements Reconciler<MicroVMImage>, Cleaner
                 return UpdateControl.patchStatus(resource).rescheduleAfter(POLL_INTERVAL);
             }
 
-            // Settled — periodic resync
+            // Settled — sync full version list then periodic resync
+            try {
+                var versions = imageClient.listVersions(status.getImageArn()).get(TIMEOUT_S, TimeUnit.SECONDS);
+                status.setVersions(versions.stream().map(v -> {
+                    var info = new ai.codriverlabs.microvm.operator.core.model.MicroVMImageVersionInfo();
+                    info.setVersion(v.imageVersion());
+                    info.setState(v.stateAsString());
+                    info.setStatus(v.statusAsString());
+                    return info;
+                }).collect(java.util.stream.Collectors.toList()));
+            } catch (Exception e) {
+                LOG.warnf("Failed to list image versions for %s: %s", name, e.getMessage());
+            }
             return UpdateControl.patchStatus(resource).rescheduleAfter(RESYNC);
 
         } catch (Exception e) {

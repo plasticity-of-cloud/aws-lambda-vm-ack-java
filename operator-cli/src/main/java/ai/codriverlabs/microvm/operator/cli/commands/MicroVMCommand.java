@@ -25,7 +25,8 @@ import picocli.CommandLine.Command;
         LogsCommand.class,
         ExecCommand.class,
         PoolCommand.class,
-        ImageCommand.class
+        ImageCommand.class,
+        TokenCommand.class
     }
 )
 public class MicroVMCommand {
