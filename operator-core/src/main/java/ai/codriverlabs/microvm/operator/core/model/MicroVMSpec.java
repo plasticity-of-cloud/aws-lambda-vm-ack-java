@@ -3,7 +3,9 @@ package ai.codriverlabs.microvm.operator.core.model;
 import ai.codriverlabs.microvm.operator.core.enums.DesiredState;
 import com.fasterxml.jackson.annotation.*;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -18,9 +20,11 @@ public class MicroVMSpec {
     private String imageRef;
     private String imageVersion;
 
-    // Networking
+    // Networking — ARNs for inbound/outbound connectors (see docs/aws-microvms-official/05-networking.md)
+    private List<String> ingressNetworkConnectors = new ArrayList<>();
+    private List<String> egressNetworkConnectors = new ArrayList<>();
+    /** Reference to a MicroVMNetwork CR (operator resolves to egress connector ARN) */
     private String networkRef;
-    private String ingressConnector;
 
     // Runtime
     private String executionRoleArn;
@@ -49,11 +53,14 @@ public class MicroVMSpec {
     public String getImageVersion() { return imageVersion; }
     public void setImageVersion(String imageVersion) { this.imageVersion = imageVersion; }
 
+    public List<String> getIngressNetworkConnectors() { return ingressNetworkConnectors; }
+    public void setIngressNetworkConnectors(List<String> v) { this.ingressNetworkConnectors = v; }
+
+    public List<String> getEgressNetworkConnectors() { return egressNetworkConnectors; }
+    public void setEgressNetworkConnectors(List<String> v) { this.egressNetworkConnectors = v; }
+
     public String getNetworkRef() { return networkRef; }
     public void setNetworkRef(String networkRef) { this.networkRef = networkRef; }
-
-    public String getIngressConnector() { return ingressConnector; }
-    public void setIngressConnector(String ingressConnector) { this.ingressConnector = ingressConnector; }
 
     public String getExecutionRoleArn() { return executionRoleArn; }
     public void setExecutionRoleArn(String executionRoleArn) { this.executionRoleArn = executionRoleArn; }
@@ -97,11 +104,11 @@ public class MicroVMSpec {
         if (!(o instanceof MicroVMSpec that)) return false;
         return Objects.equals(imageRef, that.imageRef) &&
                Objects.equals(desiredState, that.desiredState) &&
-               Objects.equals(networkRef, that.networkRef);
+               Objects.equals(ingressNetworkConnectors, that.ingressNetworkConnectors);
     }
 
     @Override
-    public int hashCode() { return Objects.hash(imageRef, desiredState, networkRef); }
+    public int hashCode() { return Objects.hash(imageRef, desiredState, ingressNetworkConnectors); }
 
     @Override
     public String toString() {

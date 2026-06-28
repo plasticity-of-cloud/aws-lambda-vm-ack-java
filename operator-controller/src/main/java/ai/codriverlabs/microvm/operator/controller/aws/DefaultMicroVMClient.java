@@ -26,11 +26,33 @@ public class DefaultMicroVMClient implements MicroVMClient {
 
     @Override
     public CompletableFuture<RunMicroVMResponse> runMicroVM(RunMicroVMRequest request) {
-        return sdk.runMicrovm(RunMicrovmRequest.builder()
+        var builder = RunMicrovmRequest.builder()
                 .imageIdentifier(request.imageIdentifier())
                 .executionRoleArn(request.executionRoleArn())
-                .runHookPayload(request.runHookPayload())
-                .build())
+                .runHookPayload(request.runHookPayload());
+
+        if (request.imageVersion() != null) {
+            builder.imageVersion(request.imageVersion());
+        }
+        if (request.maximumDurationSeconds() != null) {
+            builder.maximumDurationInSeconds(request.maximumDurationSeconds());
+        }
+        if (request.maxIdleDurationSeconds() != null || request.suspendedDurationSeconds() != null
+                || request.autoResumeEnabled() != null) {
+            builder.idlePolicy(IdlePolicy.builder()
+                    .maxIdleDurationSeconds(request.maxIdleDurationSeconds())
+                    .suspendedDurationSeconds(request.suspendedDurationSeconds())
+                    .autoResumeEnabled(request.autoResumeEnabled())
+                    .build());
+        }
+        if (request.ingressNetworkConnectors() != null && !request.ingressNetworkConnectors().isEmpty()) {
+            builder.ingressNetworkConnectors(request.ingressNetworkConnectors());
+        }
+        if (request.egressNetworkConnectors() != null && !request.egressNetworkConnectors().isEmpty()) {
+            builder.egressNetworkConnectors(request.egressNetworkConnectors());
+        }
+
+        return sdk.runMicrovm(builder.build())
                 .thenApply(r -> new RunMicroVMResponse(r.microvmId(), r.stateAsString(), r.endpoint()));
     }
 

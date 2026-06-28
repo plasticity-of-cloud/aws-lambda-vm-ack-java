@@ -1,5 +1,6 @@
 package ai.codriverlabs.microvm.operator.controller.aws;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -10,8 +11,8 @@ public record RunMicroVMRequest(
     String imageVersion,
     String executionRoleArn,
     String runHookPayload,
-    String ingressNetworkConnector,
-    String egressNetworkConnector,
+    List<String> ingressNetworkConnectors,
+    List<String> egressNetworkConnectors,
     Integer maxIdleDurationSeconds,
     Integer suspendedDurationSeconds,
     Boolean autoResumeEnabled,
