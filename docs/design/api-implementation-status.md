@@ -16,12 +16,12 @@ See [sdk-client.md](sdk-client.md) for model provenance and endpoint details.
 | `SuspendMicrovm` | `DefaultMicroVMClient.suspendMicroVM()` | ✅ drift SUSPEND | `pause` | ✅ Complete |
 | `ResumeMicrovm` | `DefaultMicroVMClient.resumeMicroVM()` | ✅ drift RESUME | `resume` | ✅ Complete |
 | `TerminateMicrovm` | `DefaultMicroVMClient.terminateMicroVM()` | ✅ finalizer + TERMINATE drift | `delete` | ✅ Complete |
-| `ListMicrovms` | ❌ not implemented | ❌ | `list` (k8s only) | ⚠️ CLI lists CRs, not AWS state |
-| `CreateMicrovmAuthToken` | ❌ not implemented | ❌ | ❌ | ❌ **Missing — blocks connection** |
-| `CreateMicrovmShellAuthToken` | ❌ not implemented | ❌ | ❌ | ❌ Missing (shell access) |
-| `TagResource` | ❌ not implemented | ❌ | ❌ | ❌ Missing (tag propagation) |
-| `UntagResource` | ❌ not implemented | ❌ | ❌ | ❌ Missing (tag propagation) |
-| `ListTags` | ❌ not implemented | ❌ | ❌ | ❌ Missing |
+| `ListMicrovms` | ✅ `DefaultMicroVMClient.listMicroVMs()` | ❌ | `list` (k8s only) | ⚠️ CLI lists CRs, not AWS state |
+| `CreateMicrovmAuthToken` | ✅ `DefaultMicroVMClient.createAuthToken()` | ❌ | ✅ `kubectl microvm token` | ✅ Complete |
+| `CreateMicrovmShellAuthToken` | ✅ `DefaultMicroVMClient.createShellAuthToken()` | ❌ | ✅ `kubectl microvm exec` | ✅ Complete |
+| `TagResource` | ✅ `DefaultMicroVMClient.tagResource()` | ✅ label sync on aligned | ❌ | ✅ Complete |
+| `UntagResource` | ✅ `DefaultMicroVMClient.untagResource()` | ❌ | ❌ | ⚠️ Implemented, not yet wired for removals |
+| `ListTags` | ✅ `DefaultMicroVMClient.listTags()` | ❌ | ❌ | ✅ Implemented |
 
 ---
 
@@ -34,12 +34,12 @@ See [sdk-client.md](sdk-client.md) for model provenance and endpoint details.
 | `GetMicrovmImage` | `MicroVMImageClient.getImage()` | ✅ poll image state | `image describe` | ✅ Complete |
 | `DeleteMicrovmImage` | `MicroVMImageClient.deleteImage()` | ✅ finalizer | `image delete` | ✅ Complete |
 | `GetMicrovmImageVersion` | `MicroVMImageClient.getImageVersion()` | ✅ poll version state | — | ✅ Complete |
-| `UpdateMicrovmImageVersion` | ❌ not implemented | ❌ `autoActivate` unused | — | ❌ **Missing — autoActivate broken** |
+| `UpdateMicrovmImageVersion` | ✅ `MicroVMImageClient.activateVersion()` | ✅ auto-activates on SUCCESSFUL | — | ✅ Complete |
 | `DeleteMicrovmImageVersion` | ❌ not implemented | ❌ | — | ❌ Missing (version pruning) |
-| `ListMicrovmImageVersions` | ❌ not implemented | ❌ `status.versions[]` empty | `image describe` | ⚠️ Partial — only latest version tracked |
+| `ListMicrovmImageVersions` | ✅ `MicroVMImageClient.listVersions()` | ✅ populates `status.versions[]` | `image describe` | ✅ Complete |
 | `ListMicrovmImages` | ❌ not implemented | ❌ | `image list` (k8s only) | ⚠️ CLI lists CRs, not AWS state |
-| `GetMicrovmImageBuild` | ❌ not implemented | ❌ | — | ❌ Missing (build log access) |
-| `ListMicrovmImageBuilds` | ❌ not implemented | ❌ | — | ❌ Missing |
+| `GetMicrovmImageBuild` | ✅ `MicroVMImageClient.getLatestBuild()` | ❌ | — | ✅ Implemented |
+| `ListMicrovmImageBuilds` | ✅ (via `getLatestBuild`) | ❌ | — | ✅ Implemented |
 
 ---
 
@@ -99,7 +99,13 @@ See [sdk-client.md](sdk-client.md) for model provenance and endpoint details.
 
 | Category | Total | Implemented | Partial | Missing |
 |----------|-------|-------------|---------|---------|
-| MicroVM lifecycle | 11 | 5 | 2 | 4 |
-| MicroVMImage | 11 | 5 | 2 | 4 |
+| MicroVM lifecycle | 11 | 10 | 1 | 0 |
+| MicroVMImage | 11 | 9 | 1 | 1 |
 | Base image discovery | 2 | 0 | 0 | 2 |
-| **Total** | **24** | **10** | **4** | **10** |
+| **Total** | **24** | **19** | **2** | **3** |
+
+## Remaining gaps
+
+- `DeleteMicrovmImageVersion` — version pruning (low priority)
+- `ListManagedMicrovmImages` / `ListManagedMicrovmImageVersions` — base image discovery (used via CLI directly)
+- `UntagResource` tag removal not yet wired to reconciler (tags added but never removed)
