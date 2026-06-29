@@ -9,5 +9,5 @@ import io.fabric8.kubernetes.model.annotation.*;
 @Kind("MicroVMNetwork")
 @Singular("microvmnetwork")
 @Plural("microvmnetworks")
-public class MicroVMNetwork extends CustomResource<MicroVMNetworkSpec, Void> implements Namespaced {
+public class MicroVMNetwork extends CustomResource<MicroVMNetworkSpec, MicroVMNetworkStatus> implements Namespaced {
 }

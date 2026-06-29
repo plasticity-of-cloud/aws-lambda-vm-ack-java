@@ -15,6 +15,7 @@
     <modules>
         <module>operator-core</module>
         <module>operator-aws-client</module>
+        <module>operator-aws-client-core</module>
         <module>operator-controller</module>
         <module>operator-webhook</module>
         <module>operator-cli</module>

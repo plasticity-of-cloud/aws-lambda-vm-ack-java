@@ -144,14 +144,12 @@ class CrdSerializationPropertyTest {
     @Provide
     Arbitrary<MicroVMNetworkSpec> validMicroVMNetworkSpec() {
         return Combinators.combine(
-            Arbitraries.strings().withCharRange('a', 'z').ofMinLength(5).ofMaxLength(15).map(s -> "vpc-" + s),
             Arbitraries.strings().withCharRange('a', 'z').ofMinLength(5).ofMaxLength(10)
                 .map(s -> "subnet-" + s).list().ofMinSize(1).ofMaxSize(6),
             Arbitraries.strings().withCharRange('a', 'z').ofMinLength(5).ofMaxLength(10)
                 .map(s -> "sg-" + s).list().ofMinSize(1).ofMaxSize(5)
-        ).as((vpc, subnets, sgs) -> {
+        ).as((subnets, sgs) -> {
             MicroVMNetworkSpec spec = new MicroVMNetworkSpec();
-            spec.setVpcId(vpc);
             spec.setSubnetIds(subnets);
             spec.setSecurityGroupIds(sgs);
             return spec;

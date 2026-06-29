@@ -2,35 +2,47 @@ package ai.codriverlabs.microvm.operator.core.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class MicroVMNetworkSpec {
-    private String vpcId;
     private List<String> subnetIds;
     private List<String> securityGroupIds;
+    /** IAM role ARN that Lambda assumes to create ENIs in the customer VPC. */
+    private String operatorRoleArn;
+    /** IPv4 (default) or DualStack */
+    private String networkProtocol = "IPv4";
+    private String region;
+    private Map<String, String> tags;
 
     public MicroVMNetworkSpec() {}
 
-    public String getVpcId() { return vpcId; }
-    public void setVpcId(String vpcId) { this.vpcId = vpcId; }
     public List<String> getSubnetIds() { return subnetIds; }
     public void setSubnetIds(List<String> subnetIds) { this.subnetIds = subnetIds; }
     public List<String> getSecurityGroupIds() { return securityGroupIds; }
     public void setSecurityGroupIds(List<String> securityGroupIds) { this.securityGroupIds = securityGroupIds; }
+    public String getOperatorRoleArn() { return operatorRoleArn; }
+    public void setOperatorRoleArn(String operatorRoleArn) { this.operatorRoleArn = operatorRoleArn; }
+    public String getNetworkProtocol() { return networkProtocol; }
+    public void setNetworkProtocol(String networkProtocol) { this.networkProtocol = networkProtocol; }
+    public String getRegion() { return region; }
+    public void setRegion(String region) { this.region = region; }
+    public Map<String, String> getTags() { return tags; }
+    public void setTags(Map<String, String> tags) { this.tags = tags; }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MicroVMNetworkSpec s = (MicroVMNetworkSpec) o;
-        return Objects.equals(vpcId, s.vpcId) && Objects.equals(subnetIds, s.subnetIds) &&
-               Objects.equals(securityGroupIds, s.securityGroupIds);
+        return Objects.equals(subnetIds, s.subnetIds)
+                && Objects.equals(securityGroupIds, s.securityGroupIds)
+                && Objects.equals(operatorRoleArn, s.operatorRoleArn)
+                && Objects.equals(networkProtocol, s.networkProtocol)
+                && Objects.equals(region, s.region);
     }
 
     @Override
-    public int hashCode() { return Objects.hash(vpcId, subnetIds, securityGroupIds); }
-
-    @Override
-    public String toString() { return "MicroVMNetworkSpec{vpcId='" + vpcId + "', subnets=" + subnetIds + ", securityGroups=" + securityGroupIds + "}"; }
+    public int hashCode() { return Objects.hash(subnetIds, securityGroupIds, operatorRoleArn, networkProtocol, region); }
 }
