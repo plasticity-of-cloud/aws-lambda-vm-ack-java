@@ -136,11 +136,12 @@ The customer also needs a separate ENI provisioning role (`spec.operatorRoleArn`
 
 New subcommand group `kubectl microvm network`:
 ```bash
-kubectl microvm network list
-kubectl microvm network describe --name my-network
-kubectl microvm network create --name my-network --subnets subnet-abc,subnet-def --security-groups sg-xyz --role arn:...
-kubectl microvm network delete --name my-network
+kubectl microvm network list                            # list all MicroVMNetwork CRs + connectorState
+kubectl microvm network describe --name my-network      # show full CR spec + status + conditions
 ```
+
+Note: `create` and `delete` are intentionally omitted — users manage MicroVMNetwork lifecycle via
+`kubectl apply -f network.yaml` / `kubectl delete microvmnetwork`. The CLI surfaces status only.
 
 ### What's missing (implementation checklist)
 
