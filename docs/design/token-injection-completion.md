@@ -334,7 +334,7 @@ The operator's Pod Identity role needs two additional permissions:
 ```
 
 Plus the operator's ServiceAccount needs cluster RBAC for TokenReview + SubjectAccessReview
-(added to `charts/lambda-vm-ack-operator/templates/clusterrole.yaml`):
+(added to `charts/kube-microvm-operator/templates/clusterrole.yaml`):
 
 ```yaml
 - apiGroups: ["authentication.k8s.io"]

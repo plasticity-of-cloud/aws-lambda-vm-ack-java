@@ -1,8 +1,8 @@
-# Default values for lambda-vm-ack-operator
+# Default values for kube-microvm-operator
 replicaCount: 1
 
 image:
-  repository: ghcr.io/plasticity-of-cloud/lambda-vm-ack-operator
+  repository: ghcr.io/plasticity-of-cloud/kube-microvm-operator
   tag: "latest"
   pullPolicy: IfNotPresent
 

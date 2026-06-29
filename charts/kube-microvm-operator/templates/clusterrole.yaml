@@ -1,9 +1,9 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "lambda-vm-ack-operator.fullname" . }}
+  name: {{ include "kube-microvm-operator.fullname" . }}
   labels:
-    {{- include "lambda-vm-ack-operator.labels" . | nindent 4 }}
+    {{- include "kube-microvm-operator.labels" . | nindent 4 }}
 rules:
   - apiGroups: ["lambda.aws.amazon.com"]
     resources: ["microvms", "microvmpools", "microvmtemplates", "microvmnetworks", "microvmimages", "microvmclasses", "microvmreplicasets"]

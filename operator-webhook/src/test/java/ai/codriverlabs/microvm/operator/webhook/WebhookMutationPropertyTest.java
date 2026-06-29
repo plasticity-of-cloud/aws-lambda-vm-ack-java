@@ -9,7 +9,7 @@ import net.jqwik.api.*;
 import java.util.Objects;
 
 /**
- * Feature: lambda-vm-ack-operator, Property 5: Webhook Mutation Applies Defaults
+ * Feature: kube-microvm-operator, Property 5: Webhook Mutation Applies Defaults
  * Validates: Requirements 5.5, 5.6
  */
 class WebhookMutationPropertyTest {

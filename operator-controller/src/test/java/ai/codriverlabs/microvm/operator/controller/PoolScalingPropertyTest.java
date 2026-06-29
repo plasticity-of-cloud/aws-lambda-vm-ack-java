@@ -8,10 +8,10 @@ import java.time.Instant;
 import java.util.*;
 
 /**
- * Feature: lambda-vm-ack-operator, Property 6: Pool Scaling Invariant
+ * Feature: kube-microvm-operator, Property 6: Pool Scaling Invariant
  * Validates: Requirements 6.1, 6.2, 6.4, 6.5, 6.6, 6.7
  *
- * Feature: lambda-vm-ack-operator, Property 7: Pool Scale-Down Order
+ * Feature: kube-microvm-operator, Property 7: Pool Scale-Down Order
  * Validates: Requirements 6.3
  */
 class PoolScalingPropertyTest {

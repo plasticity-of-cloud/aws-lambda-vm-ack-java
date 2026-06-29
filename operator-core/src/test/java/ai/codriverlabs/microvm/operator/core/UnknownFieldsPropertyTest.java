@@ -9,7 +9,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import net.jqwik.api.*;
 
 /**
- * Feature: lambda-vm-ack-operator, Property 10: Unknown Fields Are Ignored on Deserialization
+ * Feature: kube-microvm-operator, Property 10: Unknown Fields Are Ignored on Deserialization
  * Validates: Requirements 13.3
  */
 class UnknownFieldsPropertyTest {

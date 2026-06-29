@@ -1,12 +1,12 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: {{ include "lambda-vm-ack-operator.fullname" . }}-mutating
+  name: {{ include "kube-microvm-operator.fullname" . }}-mutating
   labels:
-    {{- include "lambda-vm-ack-operator.labels" . | nindent 4 }}
+    {{- include "kube-microvm-operator.labels" . | nindent 4 }}
   {{- if .Values.webhook.certManager.enabled }}
   annotations:
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "lambda-vm-ack-operator.fullname" . }}-webhook-cert
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "kube-microvm-operator.fullname" . }}-webhook-cert
   {{- end }}
 webhooks:
   - name: mutate.microvms.lambda.aws.amazon.com
@@ -15,7 +15,7 @@ webhooks:
     failurePolicy: Ignore
     clientConfig:
       service:
-        name: {{ include "lambda-vm-ack-operator.fullname" . }}-webhook
+        name: {{ include "kube-microvm-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /mutate-microvm
         port: 443
@@ -31,7 +31,7 @@ webhooks:
     failurePolicy: Ignore
     clientConfig:
       service:
-        name: {{ include "lambda-vm-ack-operator.fullname" . }}-webhook
+        name: {{ include "kube-microvm-operator.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /mutate-pod
         port: 443

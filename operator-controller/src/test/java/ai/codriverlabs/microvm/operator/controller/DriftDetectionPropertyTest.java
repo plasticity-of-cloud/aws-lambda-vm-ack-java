@@ -9,7 +9,7 @@ import net.jqwik.api.*;
 import static ai.codriverlabs.microvm.operator.core.enums.MicroVMState.*;
 
 /**
- * Feature: lambda-vm-ack-operator, Property 12: Drift Detection Correctness
+ * Feature: kube-microvm-operator, Property 12: Drift Detection Correctness
  * Validates: Requirements 3.4, 3.5
  */
 class DriftDetectionPropertyTest {

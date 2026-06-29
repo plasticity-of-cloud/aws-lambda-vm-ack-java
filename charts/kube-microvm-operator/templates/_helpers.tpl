@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "lambda-vm-ack-operator.name" -}}
+{{- define "kube-microvm-operator.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "lambda-vm-ack-operator.fullname" -}}
+{{- define "kube-microvm-operator.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,9 +24,9 @@ Create a default fully qualified app name.
 {{/*
 Common labels
 */}}
-{{- define "lambda-vm-ack-operator.labels" -}}
-helm.sh/chart: {{ include "lambda-vm-ack-operator.name" . }}-{{ .Chart.Version }}
-{{ include "lambda-vm-ack-operator.selectorLabels" . }}
+{{- define "kube-microvm-operator.labels" -}}
+helm.sh/chart: {{ include "kube-microvm-operator.name" . }}-{{ .Chart.Version }}
+{{ include "kube-microvm-operator.selectorLabels" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
@@ -34,17 +34,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "lambda-vm-ack-operator.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "lambda-vm-ack-operator.name" . }}
+{{- define "kube-microvm-operator.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "kube-microvm-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Service account name
 */}}
-{{- define "lambda-vm-ack-operator.serviceAccountName" -}}
+{{- define "kube-microvm-operator.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "lambda-vm-ack-operator.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "kube-microvm-operator.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

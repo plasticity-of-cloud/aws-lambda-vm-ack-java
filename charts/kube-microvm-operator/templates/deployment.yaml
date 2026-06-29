@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "lambda-vm-ack-operator.fullname" . }}
+  name: {{ include "kube-microvm-operator.fullname" . }}
   labels:
-    {{- include "lambda-vm-ack-operator.labels" . | nindent 4 }}
+    {{- include "kube-microvm-operator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "lambda-vm-ack-operator.selectorLabels" . | nindent 6 }}
+      {{- include "kube-microvm-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "lambda-vm-ack-operator.selectorLabels" . | nindent 8 }}
+        {{- include "kube-microvm-operator.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "lambda-vm-ack-operator.serviceAccountName" . }}
+      serviceAccountName: {{ include "kube-microvm-operator.serviceAccountName" . }}
       containers:
         - name: operator
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

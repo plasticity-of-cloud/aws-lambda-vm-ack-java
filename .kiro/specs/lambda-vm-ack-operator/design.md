@@ -611,7 +611,7 @@ public class CreateCommand implements Callable<Integer> {
 ### Helm Chart Structure
 
 ```
-charts/lambda-vm-ack-operator/
+charts/kube-microvm-operator/
 ├── Chart.yaml                    # apiVersion: v2, kubeVersion: ">=1.27.0-0 <1.33.0-0"
 ├── values.yaml                   # Configurable defaults
 ├── crds/
@@ -900,7 +900,7 @@ The operator uses **jqwik 1.9.x** as the property-based testing library. Each co
 Each property test MUST include a descriptive tag comment:
 
 ```java
-// Feature: lambda-vm-ack-operator, Property 1: CRD Serialization Round Trip
+// Feature: kube-microvm-operator, Property 1: CRD Serialization Round Trip
 @Property(tries = 200)
 void crdRoundTrip(@ForAll("validMicroVM") MicroVM microVM) { ... }
 ```

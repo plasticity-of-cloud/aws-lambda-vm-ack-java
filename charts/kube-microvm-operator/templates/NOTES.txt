@@ -1,7 +1,7 @@
 Lambda VM ACK Operator has been installed.
 
 1. Verify the operator is running:
-   kubectl get pods -l app.kubernetes.io/name={{ include "lambda-vm-ack-operator.name" . }} -n {{ .Release.Namespace }}
+   kubectl get pods -l app.kubernetes.io/name={{ include "kube-microvm-operator.name" . }} -n {{ .Release.Namespace }}
 
 2. Create your first MicroVM:
    cat <<EOF | kubectl apply -f -

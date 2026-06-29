@@ -34,9 +34,9 @@ kind: ClusterRole
 metadata:
   name: microvm-token-requester
   labels:
-    {{- include "lambda-vm-ack-operator.labels" . | nindent 4 }}
+    {{- include "kube-microvm-operator.labels" . | nindent 4 }}
   annotations:
-    helm.sh/chart: {{ include "lambda-vm-ack-operator.chart" . }}
+    helm.sh/chart: {{ include "kube-microvm-operator.chart" . }}
 rules:
 - apiGroups: ["lambda.aws.amazon.com"]
   resources: ["microvms/token"]

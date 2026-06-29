@@ -4,7 +4,7 @@ import net.jqwik.api.*;
 import net.jqwik.api.constraints.*;
 
 /**
- * Feature: lambda-vm-ack-operator, Property 8: Namespace Quota Enforcement
+ * Feature: kube-microvm-operator, Property 8: Namespace Quota Enforcement
  * Validates: Requirements 10.3
  */
 class QuotaEnforcementPropertyTest {

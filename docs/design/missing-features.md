@@ -291,7 +291,7 @@ spec:
 
 ## 5. Helm Chart Publishing
 
-**Status**: Chart exists at `charts/lambda-vm-ack-operator/`. Never published to GHCR OCI registry.
+**Status**: Chart exists at `charts/kube-microvm-operator/`. Never published to GHCR OCI registry.
 
 **What's missing:**
 

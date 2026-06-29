@@ -324,7 +324,7 @@ This plan implements the Lambda VM ACK Operator as a multi-module Maven project 
 
 - [ ] 10. Implement Helm chart packaging
   - [ ] 10.1 Create Helm chart structure and Chart.yaml
-    - Create `charts/lambda-vm-ack-operator/Chart.yaml` with apiVersion v2, kubeVersion `>=1.27.0-0 <1.33.0-0`
+    - Create `charts/kube-microvm-operator/Chart.yaml` with apiVersion v2, kubeVersion `>=1.27.0-0 <1.33.0-0`
     - Create `values.yaml` with defaults: replicaCount=1, 256Mi memory request, 512Mi limit, 100m CPU request, 500m CPU limit
     - Add configurable values: `image.repository`, `image.tag`, `aws.region`, `aws.irsaRoleArn`, `webhook.certManager.enabled`, `metrics.enabled`
     - Create `templates/_helpers.tpl` with standard Helm template helpers

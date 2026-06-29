@@ -1,5 +1,5 @@
 apiVersion: v2
-name: lambda-vm-ack-operator
+name: kube-microvm-operator
 description: Kubernetes operator for AWS Lambda MicroVMs following the ACK pattern
 type: application
 version: 0.1.0

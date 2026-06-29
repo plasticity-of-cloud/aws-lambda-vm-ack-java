@@ -10,7 +10,7 @@ import net.jqwik.api.*;
 import java.util.List;
 
 /**
- * Feature: lambda-vm-ack-operator, Property 9: CLI Output Format Consistency
+ * Feature: kube-microvm-operator, Property 9: CLI Output Format Consistency
  * Validates: Requirements 7.2
  */
 class CliOutputPropertyTest {

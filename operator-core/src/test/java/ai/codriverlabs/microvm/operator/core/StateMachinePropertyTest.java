@@ -9,10 +9,10 @@ import java.util.*;
 import static ai.codriverlabs.microvm.operator.core.enums.MicroVMState.*;
 
 /**
- * Feature: lambda-vm-ack-operator, Property 2: State Transition Validity
+ * Feature: kube-microvm-operator, Property 2: State Transition Validity
  * Validates: Requirements 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10, 2.14
  *
- * Feature: lambda-vm-ack-operator, Property 3: Invalid State Transitions Are Rejected
+ * Feature: kube-microvm-operator, Property 3: Invalid State Transitions Are Rejected
  * Validates: Requirements 2.13, 2.14
  */
 class StateMachinePropertyTest {

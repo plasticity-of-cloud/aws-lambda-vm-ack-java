@@ -6,7 +6,7 @@ import net.jqwik.api.*;
 import java.util.Map;
 
 /**
- * Feature: lambda-vm-ack-operator, Property 11: Tag Propagation Completeness
+ * Feature: kube-microvm-operator, Property 11: Tag Propagation Completeness
  * Validates: Requirements 4.3, 6.4
  */
 class TagPropagationPropertyTest {

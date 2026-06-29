@@ -8,10 +8,10 @@ import net.jqwik.api.*;
 import java.util.List;
 
 /**
- * Feature: lambda-vm-ack-operator, Property 4: Webhook Range Validation
+ * Feature: kube-microvm-operator, Property 4: Webhook Range Validation
  * Validates: Requirements 5.1, 5.2, 5.3
  *
- * Feature: lambda-vm-ack-operator, Property 5: Webhook Mutation Applies Defaults
+ * Feature: kube-microvm-operator, Property 5: Webhook Mutation Applies Defaults
  * Validates: Requirements 5.5, 5.6
  */
 class WebhookValidationPropertyTest {

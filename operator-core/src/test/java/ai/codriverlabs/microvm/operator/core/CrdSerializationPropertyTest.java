@@ -12,7 +12,7 @@ import net.jqwik.api.*;
 import java.util.*;
 
 /**
- * Feature: lambda-vm-ack-operator, Property 1: CRD Serialization Round Trip
+ * Feature: kube-microvm-operator, Property 1: CRD Serialization Round Trip
  * Validates: Requirements 1.2, 1.3, 1.5, 1.6, 1.8, 1.10, 13.1, 13.2, 13.6
  */
 class CrdSerializationPropertyTest {

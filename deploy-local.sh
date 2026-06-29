@@ -70,7 +70,7 @@ kubectl get namespace "${NAMESPACE}" &>/dev/null \
 
 # 3. Pod Identity role + association (unless IRSA or explicitly skipped)
 CLUSTER_NAME=$(kubectl config current-context | sed 's|.*cluster/||')
-SA_NAME="kube-microvm-operator-lambda-vm-ack-operator"
+SA_NAME="kube-microvm-operator"
 POD_IDENTITY_ROLE_NAME="kube-microvm-operator"
 
 if [[ -z "$ROLE_ARN" ]] && ! $SKIP_POD_IDENTITY && ! $DRY_RUN; then
@@ -172,7 +172,7 @@ HELM_SET_ROLE=""
 [[ -n "$ROLE_ARN" ]] && HELM_SET_ROLE="--set serviceAccount.irsaRoleArn=${ROLE_ARN}"
 
 helm upgrade --install kube-microvm-operator \
-  charts/lambda-vm-ack-operator \
+  charts/kube-microvm-operator \
   --namespace "${NAMESPACE}" \
   --set image.repository="${IMAGE_REPO}" \
   --set image.tag="${IMAGE_TAG}" \

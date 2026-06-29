@@ -195,10 +195,10 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          sed -i "s/^version:.*/version: ${VERSION}/" charts/lambda-vm-ack-operator/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/lambda-vm-ack-operator/Chart.yaml
-          helm package charts/lambda-vm-ack-operator --destination dist/
-          helm push dist/lambda-vm-ack-operator-${VERSION}.tgz oci://ghcr.io/${OWNER}/helm
+          sed -i "s/^version:.*/version: ${VERSION}/" charts/kube-microvm-operator/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/kube-microvm-operator/Chart.yaml
+          helm package charts/kube-microvm-operator --destination dist/
+          helm push dist/kube-microvm-operator-${VERSION}.tgz oci://ghcr.io/${OWNER}/helm
       - uses: actions/upload-artifact@v4
         with:
           name: helm-chart
@@ -231,11 +231,11 @@ jobs:
         working-directory: dist
         run: |
           # Individual .sha256 per artifact
-          for f in kubectl-microvm-linux-amd64 kubectl-microvm-linux-arm64 lambda-vm-ack-operator-*.tgz; do
+          for f in kubectl-microvm-linux-amd64 kubectl-microvm-linux-arm64 kube-microvm-operator-*.tgz; do
             sha256sum "$f" > "$f.sha256"
           done
           # Combined checksums.sha256
-          sha256sum kubectl-microvm-linux-amd64 kubectl-microvm-linux-arm64 lambda-vm-ack-operator-*.tgz > checksums.sha256
+          sha256sum kubectl-microvm-linux-amd64 kubectl-microvm-linux-arm64 kube-microvm-operator-*.tgz > checksums.sha256
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
@@ -244,6 +244,6 @@ jobs:
             dist/kubectl-microvm-linux-amd64.sha256
             dist/kubectl-microvm-linux-arm64
             dist/kubectl-microvm-linux-arm64.sha256
-            dist/lambda-vm-ack-operator-*.tgz
-            dist/lambda-vm-ack-operator-*.tgz.sha256
+            dist/kube-microvm-operator-*.tgz
+            dist/kube-microvm-operator-*.tgz.sha256
             dist/checksums.sha256
