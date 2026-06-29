@@ -34,17 +34,17 @@ import java.util.Base64;
 public class PodMutatingWebhook {
 
     private static final Logger LOG = Logger.getLogger(PodMutatingWebhook.class);
-    static final String ANNOTATION = "lambda.microvm.auth";
-    static final String SIDECAR_NAME = "microvm-auth-agent";
-    static final String VOLUME_NAME = "microvm-token";
-    static final String DEFAULT_MOUNT_PATH = "/var/run/microvm";
+    public static final String ANNOTATION = "lambda.microvm.auth";
+    public static final String SIDECAR_NAME = "microvm-auth-agent";
+    public static final String VOLUME_NAME = "microvm-token";
+    public static final String DEFAULT_MOUNT_PATH = "/var/run/microvm";
 
     @ConfigProperty(name = "microvm.webhook.agent-image",
             defaultValue = "ghcr.io/plasticity-of-cloud/microvm-auth-agent:latest")
-    String agentImage;
+    public String agentImage;
 
     @Inject
-    ObjectMapper mapper;
+    public ObjectMapper mapper;
 
     @POST
     public AdmissionReview mutate(AdmissionReview review) {

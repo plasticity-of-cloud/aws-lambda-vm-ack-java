@@ -28,7 +28,6 @@ jobs:
       - run: ./mvnw verify -pl operator-core,operator-controller,operator-webhook,operator-cli,operator-tests -am --batch-mode --no-transfer-progress
 
   # ─── Native CLI binary ────────────────────────────────────────────────────
-  # Builds kubectl-microvm native binary for linux/amd64 and linux/arm64.
 
   native-cli:
     name: Native CLI (${{ matrix.arch }})
@@ -59,7 +58,6 @@ jobs:
           BINARY=$(find operator-cli/target -name "*-runner" -type f | head -1)
           cp "$BINARY" kubectl-microvm-linux-${{ matrix.arch }}
           chmod +x kubectl-microvm-linux-${{ matrix.arch }}
-          echo "Binary: $(ls -lh kubectl-microvm-linux-${{ matrix.arch }})"
           file kubectl-microvm-linux-${{ matrix.arch }}
       - name: Smoke test
         run: timeout 5 ./kubectl-microvm-linux-${{ matrix.arch }} --help || true
@@ -69,11 +67,11 @@ jobs:
           path: kubectl-microvm-linux-${{ matrix.arch }}
           retention-days: 7
 
-  # ─── Operator container image (per-arch) ─────────────────────────────────
-  # Builds the operator native container image per arch, pushes with arch suffix tag.
+  # ─── Container images (per arch) ─────────────────────────────────────────
+  # Builds native container images for operator + auth-agent per arch.
 
-  operator-image:
-    name: Operator Image (${{ matrix.arch }})
+  container-image:
+    name: ${{ matrix.image }} (${{ matrix.arch }})
     needs: test-jvm
     if: github.event_name != 'pull_request'
     strategy:
@@ -82,17 +80,27 @@ jobs:
           - arch: amd64
             runner: ubuntu-latest
             platform: linux/amd64
+            image: kube-microvm-operator
+            dockerfile: Dockerfile
           - arch: arm64
             runner: ubuntu-24.04-arm
             platform: linux/arm64
+            image: kube-microvm-operator
+            dockerfile: Dockerfile
+          - arch: amd64
+            runner: ubuntu-latest
+            platform: linux/amd64
+            image: microvm-auth-agent
+            dockerfile: Dockerfile.auth-agent
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            image: microvm-auth-agent
+            dockerfile: Dockerfile.auth-agent
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
-    outputs:
-      # Each arch exports its digest for manifest merge
-      digest-amd64: ${{ matrix.arch == 'amd64' && steps.push.outputs.digest || '' }}
-      digest-arm64: ${{ matrix.arch == 'arm64' && steps.push.outputs.digest || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -109,28 +117,29 @@ jobs:
           else
             echo "value=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
           fi
-      - name: Build and push (${{ matrix.arch }})
-        id: push
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile
+          file: ${{ matrix.dockerfile }}
           platforms: ${{ matrix.platform }}
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/kube-microvm-operator:${{ steps.tag.outputs.value }}-${{ matrix.arch }}
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.tag.outputs.value }}-${{ matrix.arch }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha,scope=operator-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=operator-${{ matrix.arch }}
+          cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.arch }}
 
-  # ─── Multi-arch manifest ──────────────────────────────────────────────────
-  # Creates a single multi-arch manifest pointing to both arch-specific images.
+  # ─── Multi-arch manifests ─────────────────────────────────────────────────
 
-  operator-manifest:
-    name: Operator Manifest (multi-arch)
-    needs: operator-image
+  manifest:
+    name: Manifest (${{ matrix.image }})
+    needs: container-image
     if: github.event_name != 'pull_request'
+    strategy:
+      matrix:
+        image: [kube-microvm-operator, microvm-auth-agent]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -141,38 +150,27 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Compute tags
-        id: tags
+      - name: Create multi-arch manifest
         run: |
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE="ghcr.io/${OWNER}/kube-microvm-operator"
+          IMAGE="ghcr.io/${OWNER}/${{ matrix.image }}"
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF_NAME#v}"
-            MAJOR="${VERSION%%.*}"
-            MINOR="${VERSION%.*}"
-            echo "tags=${IMAGE}:${VERSION} ${IMAGE}:${MINOR} ${IMAGE}:${MAJOR} ${IMAGE}:latest" >> $GITHUB_OUTPUT
-            echo "sha_tag=${VERSION}" >> $GITHUB_OUTPUT
+            MAJOR="${VERSION%%.*}"; MINOR="${VERSION%.*}"
+            TAGS="${IMAGE}:${VERSION} ${IMAGE}:${MINOR} ${IMAGE}:${MAJOR} ${IMAGE}:latest"
+            SHA_TAG="${VERSION}"
           else
             SHA="${GITHUB_SHA::8}"
-            EXTRA=""
-            if [[ "${GITHUB_REF}" == refs/heads/main ]]; then EXTRA="${IMAGE}:main"; fi
-            echo "tags=${IMAGE}:${SHA} ${EXTRA}" >> $GITHUB_OUTPUT
-            echo "sha_tag=${SHA}" >> $GITHUB_OUTPUT
+            TAGS="${IMAGE}:${SHA}"
+            [[ "${GITHUB_REF}" == refs/heads/main ]] && TAGS="${TAGS} ${IMAGE}:main"
+            SHA_TAG="${SHA}"
           fi
-      - name: Create and push multi-arch manifest
-        run: |
-          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE="ghcr.io/${OWNER}/kube-microvm-operator"
-          SHA_TAG="${{ steps.tags.outputs.sha_tag }}"
-          AMD="${IMAGE}:${SHA_TAG}-amd64"
-          ARM="${IMAGE}:${SHA_TAG}-arm64"
-          for TAG in ${{ steps.tags.outputs.tags }}; do
-            docker manifest create "${TAG}" "${AMD}" "${ARM}"
+          for TAG in ${TAGS}; do
+            docker manifest create "${TAG}" "${IMAGE}:${SHA_TAG}-amd64" "${IMAGE}:${SHA_TAG}-arm64"
             docker manifest push "${TAG}"
           done
 
   # ─── Helm chart ───────────────────────────────────────────────────────────
-  # Packages the Helm chart and pushes to GHCR OCI on version tags only.
 
   helm-chart:
     name: Helm Chart
@@ -184,8 +182,7 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
-      - name: Install Helm
-        uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v4
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -195,7 +192,6 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          # Bump chart version to match release
           sed -i "s/^version:.*/version: ${VERSION}/" charts/lambda-vm-ack-operator/Chart.yaml
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/lambda-vm-ack-operator/Chart.yaml
           helm package charts/lambda-vm-ack-operator --destination dist/
@@ -207,11 +203,10 @@ jobs:
           retention-days: 1
 
   # ─── GitHub Release ───────────────────────────────────────────────────────
-  # Attaches CLI binaries + Helm chart + checksums to the GitHub Release.
 
   release:
     name: GitHub Release
-    needs: [native-cli, operator-manifest, helm-chart]
+    needs: [native-cli, manifest, helm-chart]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
