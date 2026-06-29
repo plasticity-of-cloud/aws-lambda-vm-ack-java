@@ -1,0 +1,94 @@
+---
+# Token requester ClusterRole — grants pods permission to call the operator's
+# token sub-resource (POST .../microvms/{name}/token) without AWS credentials.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: microvm-token-requester
+rules:
+- apiGroups: ["lambda.aws.amazon.com"]
+  resources: ["microvms/token"]
+  verbs: ["create"]
+---
+# cert-manager Certificate for the webhook TLS
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kube-microvm-operator-webhook-tls
+  namespace: kube-microvm
+spec:
+  secretName: kube-microvm-operator-webhook-tls
+  dnsNames:
+  - kube-microvm-operator.kube-microvm.svc
+  - kube-microvm-operator.kube-microvm.svc.cluster.local
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+  duration: 8760h
+  renewBefore: 720h
+---
+# MutatingWebhookConfiguration — MicroVM spec defaulting + pod token injection
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: kube-microvm-operator-mutating
+  annotations:
+    cert-manager.io/inject-ca-from: kube-microvm/kube-microvm-operator-webhook-tls
+webhooks:
+- name: mutate.microvms.lambda.aws.amazon.com
+  admissionReviewVersions: ["v1"]
+  sideEffects: None
+  failurePolicy: Ignore
+  clientConfig:
+    service:
+      name: kube-microvm-operator
+      namespace: kube-microvm
+      path: /mutate-microvm
+      port: 443
+  rules:
+  - apiGroups: ["lambda.aws.amazon.com"]
+    apiVersions: ["v1alpha1"]
+    operations: ["CREATE", "UPDATE"]
+    resources: ["microvms"]
+- name: pod-inject.lambda.aws.amazon.com
+  admissionReviewVersions: ["v1"]
+  sideEffects: None
+  failurePolicy: Ignore
+  clientConfig:
+    service:
+      name: kube-microvm-operator
+      namespace: kube-microvm
+      path: /mutate-pod
+      port: 443
+  rules:
+  - apiGroups: [""]
+    apiVersions: ["v1"]
+    operations: ["CREATE"]
+    resources: ["pods"]
+  namespaceSelector:
+    matchLabels:
+      lambda.microvm.auth/inject: "enabled"
+---
+# ValidatingWebhookConfiguration — MicroVM/Image/Network validation
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: kube-microvm-operator-validating
+  annotations:
+    cert-manager.io/inject-ca-from: kube-microvm/kube-microvm-operator-webhook-tls
+webhooks:
+- name: validate.microvms.lambda.aws.amazon.com
+  admissionReviewVersions: ["v1"]
+  sideEffects: None
+  failurePolicy: Fail
+  clientConfig:
+    service:
+      name: kube-microvm-operator
+      namespace: kube-microvm
+      path: /validate-microvm
+      port: 443
+  rules:
+  - apiGroups: ["lambda.aws.amazon.com"]
+    apiVersions: ["v1alpha1"]
+    operations: ["CREATE", "UPDATE"]
+    resources: ["microvms", "microvmimages", "microvmnetworks"]

@@ -1,6 +1,8 @@
+fullnameOverride: ""
+
 serviceAccount:
   # For IRSA: set to the IAM role ARN (e.g. arn:aws:iam::123456789012:role/kube-microvm-operator)
-  # For EKS Pod Identity (recommended): leave empty and create a PodIdentityAssociation via EKS console/API
+  # For EKS Pod Identity (recommended): leave empty and create a PodIdentityAssociation
   irsaRoleArn: ""
 
 webhook:
@@ -13,3 +15,15 @@ webhook:
 
 networkPolicy:
   enabled: true
+
+# Token injection Phase 2 — operator token sub-resource endpoint
+tokenEndpoint:
+  enabled: true
+  maxExpiryMinutes: 60
+
+# Sidecar image for auto-injected microvm-auth-agent
+# Injected into pods annotated with lambda.microvm.auth: <vm-name>
+authAgent:
+  image:
+    repository: ghcr.io/plasticity-of-cloud/microvm-auth-agent
+    tag: latest

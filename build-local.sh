@@ -1,127 +1,151 @@
 #!/usr/bin/env bash
-# build-local.sh — build KubeMicroVM operator + CLI
+# build-local.sh — KubeMicroVM operator local build
 #
 # Usage:
-#   ./build-local.sh                  # JVM build, no image push
-#   ./build-local.sh --native         # GraalVM native CLI + operator image
-#   ./build-local.sh --skip-tests     # skip unit tests
-#   ./build-local.sh --push           # build & push container images to ECR
-#   ./build-local.sh --registry <url> # override registry (default: auto ECR)
-#   ./build-local.sh --only cli       # build only: operator | cli | all (default)
+#   ./build-local.sh                          # JVM build, all modules
+#   ./build-local.sh --native                 # GraalVM native (CLI + operator)
+#   ./build-local.sh --skip-tests             # skip unit + integration tests
+#   ./build-local.sh --push                   # build + push container images
+#   ./build-local.sh --helm                   # generate Helm chart tarball
+#   ./build-local.sh --only operator          # operator-controller only
+#   ./build-local.sh --only cli               # kubectl-microvm CLI only
+#   ./build-local.sh --only operator,cli      # multiple modules
+#   ./build-local.sh --registry 123.dkr.ecr.us-east-1.amazonaws.com
+#   ./build-local.sh --push --helm --registry 123.dkr.ecr.us-east-1.amazonaws.com
 #
 set -euo pipefail
 
 NATIVE=false
 SKIP_TESTS=false
 PUSH=false
+HELM=false
+ONLY=""
 REGISTRY=""
-ONLY="all"
 
-while [[ $# -gt 0 ]]; do
-  case $1 in
+for arg in "$@"; do
+  case $arg in
     --help)
-      sed -n '2,9p' "$0" | sed 's/^# //'
-      exit 0 ;;
-    --native)       NATIVE=true ;;
-    --skip-tests)   SKIP_TESTS=true ;;
-    --push)         PUSH=true ;;
-    --only)         ONLY="$2"; shift ;;
-    --only=*)       ONLY="${1#--only=}" ;;
-    --registry)     REGISTRY="$2"; shift ;;
-    --registry=*)   REGISTRY="${1#--registry=}" ;;
-    *) echo "Unknown option: $1" >&2; exit 1 ;;
+      echo "Usage: ./build-local.sh [OPTIONS]"
+      echo ""
+      echo "Options:"
+      echo "  --native              Build GraalVM native binaries (operator + CLI)"
+      echo "  --skip-tests          Skip unit + integration tests"
+      echo "  --push                Push container images after build"
+      echo "  --helm                Generate Helm chart tarball into operator-controller/target/helm/"
+      echo "  --only <list>         Comma-separated: operator, cli, agent, tests"
+      echo "  --registry <url>      Container registry (default: ghcr.io/plasticity-of-cloud)"
+      echo "  --help                Show this help"
+      echo ""
+      echo "Examples:"
+      echo "  ./build-local.sh --skip-tests"
+      echo "  ./build-local.sh --push --helm --registry 123.dkr.ecr.us-east-1.amazonaws.com"
+      echo "  ./build-local.sh --native --only cli"
+      echo "  ./build-local.sh --only operator --push --helm"
+      exit 0
+      ;;
+    --native)     NATIVE=true ;;
+    --skip-tests) SKIP_TESTS=true ;;
+    --push)       PUSH=true ;;
+    --helm)       HELM=true ;;
+    --only=*)     ONLY="${arg#--only=}" ;;
+    --registry=*) REGISTRY="${arg#--registry=}" ;;
+    --only)       ;;
+    --registry)   ;;
+    *)
+      if [[ "${PREV_ARG:-}" == "--only" ]];     then ONLY="$arg"
+      elif [[ "${PREV_ARG:-}" == "--registry" ]]; then REGISTRY="$arg"
+      fi
+      ;;
   esac
-  shift
+  PREV_ARG="$arg"
 done
 
-SKIP_FLAG=""
-$SKIP_TESTS && SKIP_FLAG="-DskipTests"
+should_build() { [[ -z "$ONLY" ]] || [[ ",$ONLY," == *",$1,"* ]]; }
 
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-REGION=$(aws configure get region || echo "ap-south-1")
-ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
-[[ -n "$REGISTRY" ]] || REGISTRY="$ECR_REGISTRY"
+SKIP_FLAG=""; $SKIP_TESTS && SKIP_FLAG="-DskipTests"
 
-# If registry is an ECR URL, extract region from it
-if [[ "$REGISTRY" =~ \.dkr\.ecr\.([a-z0-9-]+)\.amazonaws\.com ]]; then
-  REGION="${BASH_REMATCH[1]}"
-fi
-
+# Resolve image tag from git (strip leading 'v' and dirty suffix)
 IMAGE_TAG=$(git describe --tags 2>/dev/null | sed 's/^v//;s/-[0-9]*-g[0-9a-f]*$//' || echo "dev")
-echo "==> KubeMicroVM build  native=${NATIVE}  skipTests=${SKIP_TESTS}  only=${ONLY}  push=${PUSH}  tag=${IMAGE_TAG}"
 
-# ECR login when pushing
-if $PUSH; then
-  echo "==> ECR login (${REGION})"
-  aws ecr get-login-password --region "${REGION}" \
+# ECR login if pushing to ECR registry
+if $PUSH && [[ "${REGISTRY:-}" =~ \.dkr\.ecr\.([a-z0-9-]+)\.amazonaws\.com ]]; then
+  ECR_REGION="${BASH_REMATCH[1]}"
+  echo "==> ECR login (${ECR_REGION})"
+  aws ecr get-login-password --region "${ECR_REGION}" \
     | docker login --username AWS --password-stdin "${REGISTRY}"
-  echo "==> ECR Public login (for base images)"
-  aws ecr-public get-login-password --region us-east-1 \
-    | docker login --username AWS --password-stdin public.ecr.aws
 fi
 
-ensure_ecr_repo() {
-  local repo="$1"
-  aws ecr describe-repositories --repository-names "$repo" --region "${REGION}" &>/dev/null \
-    || aws ecr create-repository --repository-name "$repo" --region "${REGION}" \
-         --image-scanning-configuration scanOnPush=true \
-         --query 'repository.repositoryName' --output text
+# Build Quarkus container-image flags
+image_flags() {
+  # Only build/push image when --push is set; otherwise skip image build entirely
+  if $PUSH; then
+    local flags="-Dquarkus.container-image.build=true -Dquarkus.container-image.push=true"
+    flags+=" -Dquarkus.container-image.tag=${IMAGE_TAG}"
+    [[ -n "$REGISTRY" ]] && flags+=" -Dquarkus.container-image.registry=${REGISTRY%%/*}"
+    [[ -n "$REGISTRY" && "$REGISTRY" == */* ]] && flags+=" -Dquarkus.container-image.group=${REGISTRY#*/}"
+    echo "$flags"
+  else
+    # No image build — just compile and package
+    echo "-Dquarkus.container-image.build=false"
+  fi
 }
 
-# 0. Parent + core (always needed)
-echo "--- [0] parent + operator-core"
+echo "==> KubeMicroVM build  native=${NATIVE}  skipTests=${SKIP_TESTS}  only=${ONLY:-all}  push=${PUSH}  helm=${HELM}  tag=${IMAGE_TAG}"
+
+# 0. Parent POM + core + SDK clients (always required)
+echo "--- [0] parent + operator-core + SDK clients"
 ./mvnw -B -N install $SKIP_FLAG
-./mvnw -B -pl operator-core install $SKIP_FLAG
+./mvnw -B -pl operator-core,operator-aws-client,operator-aws-client-core install $SKIP_FLAG
 
-# 1. Operator controller image
-if [[ "$ONLY" == "all" || "$ONLY" == "operator" ]]; then
+# 1. Operator controller
+if should_build "operator"; then
   echo "--- [1] operator-controller"
-
-  IMAGE_FLAGS=""
-  if $PUSH; then
-    ensure_ecr_repo "plasticity-of-cloud/kube-microvm-operator"
-    IMAGE_FLAGS="-Dquarkus.container-image.build=true \
-      -Dquarkus.container-image.push=true \
-      -Dquarkus.container-image.registry=${REGISTRY} \
-      -Dquarkus.container-image.group=plasticity-of-cloud \
-      -Dquarkus.container-image.name=kube-microvm-operator \
-      -Dquarkus.container-image.tag=${IMAGE_TAG} \
-      -Dquarkus.docker.buildx.platform=linux/arm64 \
-      -Dquarkus.docker.buildx.builder-name=arm64-builder"
-  fi
-
+  HELM_FLAGS=""
+  $HELM && HELM_FLAGS="-Dquarkus.helm.version=${IMAGE_TAG} -Dquarkus.helm.create-tar-file=true"
   if $NATIVE; then
-    ./mvnw -B -pl operator-controller -am clean package $SKIP_FLAG -Pnative $IMAGE_FLAGS
+    ./mvnw -B -pl operator-controller package $SKIP_FLAG -Dnative \
+      -Dquarkus.native.container-build=false \
+      $(image_flags) $HELM_FLAGS
   else
-    ./mvnw -B -pl operator-controller -am clean package $SKIP_FLAG $IMAGE_FLAGS
+    ./mvnw -B -pl operator-controller package $SKIP_FLAG \
+      $(image_flags) $HELM_FLAGS
   fi
+  $HELM && echo "==> Helm chart: operator-controller/target/helm/kubernetes/kube-microvm-operator-${IMAGE_TAG}.tar.gz"
 fi
 
-# 2. Webhook image (bundled into controller in JVM mode; native = separate)
-if [[ "$ONLY" == "all" ]]; then
-  echo "--- [2] operator-webhook"
-  ./mvnw -B -pl operator-webhook -am clean package $SKIP_FLAG
-fi
-
-# 3. CLI
-if [[ "$ONLY" == "all" || "$ONLY" == "cli" ]]; then
-  echo "--- [3] operator-cli"
+# 2. CLI (kubectl-microvm)
+if should_build "cli"; then
+  echo "--- [2] operator-cli"
   if $NATIVE; then
-    ./mvnw -B -pl operator-cli -am clean package $SKIP_FLAG -Pnative \
+    ./mvnw -B -pl operator-cli package $SKIP_FLAG -Dnative \
       -Dquarkus.native.container-build=false
+    echo "==> CLI binary: $(find operator-cli/target -name '*-runner' -type f | head -1)"
   else
-    ./mvnw -B -pl operator-cli -am clean package $SKIP_FLAG
-  fi
-
-  CLI_BIN="operator-cli/target/operator-cli-1.0.0-SNAPSHOT-runner"
-  if [[ -f "$CLI_BIN" ]]; then
-    echo "==> CLI binary: ${CLI_BIN}"
-  else
+    ./mvnw -B -pl operator-cli package $SKIP_FLAG
     echo "==> CLI jar: operator-cli/target/quarkus-app/"
   fi
 fi
 
+# 3. Auth agent sidecar
+if should_build "agent"; then
+  echo "--- [3] operator-auth-agent"
+  if $NATIVE; then
+    AGENT_IMAGE_FLAGS="-Dquarkus.container-image.build=true -Dquarkus.container-image.push=${PUSH}"
+    AGENT_IMAGE_FLAGS+=" -Dquarkus.container-image.tag=${IMAGE_TAG}"
+    [[ -n "${REGISTRY:-}" ]] && AGENT_IMAGE_FLAGS+=" -Dquarkus.container-image.registry=${REGISTRY%%/*}"
+    ./mvnw -B -pl operator-auth-agent package $SKIP_FLAG -Dnative \
+      -Dquarkus.native.container-build=false \
+      $AGENT_IMAGE_FLAGS
+  else
+    ./mvnw -B -pl operator-auth-agent package $SKIP_FLAG
+  fi
+fi
+
+# 4. Integration tests
+if should_build "tests"; then
+  echo "--- [4] operator-tests"
+  ./mvnw -B -pl operator-tests verify
+fi
+
 echo ""
-echo "==> Build complete  (image tag: ${IMAGE_TAG})"
-[[ "$ONLY" == "all" || "$ONLY" == "operator" ]] && \
-  echo "    Operator image: ${REGISTRY}/plasticity-of-cloud/kube-microvm-operator:${IMAGE_TAG}"
+echo "==> Build complete  (tag: ${IMAGE_TAG})"

@@ -185,32 +185,33 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Package and push chart
+      - name: Build and push Helm chart to GHCR OCI
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          REGISTRY="ghcr.io/${OWNER}"
-
-          # Bump Chart.yaml metadata
-          sed -i "s/^version:.*/version: ${VERSION}/" charts/kube-microvm-operator/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/kube-microvm-operator/Chart.yaml
-
-          # Pin image tags to exact release version using yq (available on ubuntu runners)
-          yq -i ".image.tag = \"${VERSION}\"" charts/kube-microvm-operator/values.yaml
-          yq -i ".authAgent.image.tag = \"${VERSION}\"" charts/kube-microvm-operator/values.yaml
-
-          helm package charts/kube-microvm-operator --destination dist/
-          helm push dist/kube-microvm-operator-${VERSION}.tgz oci://${REGISTRY}/helm
+          # Quarkus Helm generates the chart with image tag and version baked in
+          ./mvnw -B -pl operator-core,operator-aws-client,operator-aws-client-core,operator-controller \
+            package -DskipTests --no-transfer-progress \
+            -Dquarkus.helm.version=${VERSION} \
+            -Dquarkus.helm.create-tar-file=true \
+            -Dquarkus.container-image.tag=${VERSION} \
+            -Dquarkus.container-image.build=false
+          helm push operator-controller/target/helm/kubernetes/kube-microvm-operator-${VERSION}.tar.gz \
+            oci://ghcr.io/${OWNER}/helm
       - uses: actions/upload-artifact@v4
         with:
           name: helm-chart
-          path: dist/*.tgz
+          path: operator-controller/target/helm/kubernetes/kube-microvm-operator-*.tar.gz
           retention-days: 1
 
   # ─── GitHub Release ───────────────────────────────────────────────────────
@@ -239,11 +240,11 @@ jobs:
         working-directory: dist
         run: |
           # Individual .sha256 per artifact
-          for f in kubectl-microvm-linux-amd64 kubectl-microvm-linux-arm64 kube-microvm-operator-*.tgz; do
+          for f in kubectl-microvm-linux-amd64 kubectl-microvm-linux-arm64 kube-microvm-operator-*.tar.gz; do
             sha256sum "$f" > "$f.sha256"
           done
           # Combined checksums.sha256
-          sha256sum kubectl-microvm-linux-amd64 kubectl-microvm-linux-arm64 kube-microvm-operator-*.tgz > checksums.sha256
+          sha256sum kubectl-microvm-linux-amd64 kubectl-microvm-linux-arm64 kube-microvm-operator-*.tar.gz > checksums.sha256
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
@@ -252,6 +253,6 @@ jobs:
             dist/kubectl-microvm-linux-amd64.sha256
             dist/kubectl-microvm-linux-arm64
             dist/kubectl-microvm-linux-arm64.sha256
-            dist/kube-microvm-operator-*.tgz
-            dist/kube-microvm-operator-*.tgz.sha256
+            dist/kube-microvm-operator-*.tar.gz
+            dist/kube-microvm-operator-*.tar.gz.sha256
             dist/checksums.sha256
