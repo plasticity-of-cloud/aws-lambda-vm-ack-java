@@ -1,4 +1,4 @@
-name: Native Image Build (ARM64)
+name: Build and Release
 
 on:
   push:
@@ -10,221 +10,233 @@ on:
   workflow_dispatch:
 
 env:
-  JAVA_VERSION: '25'
-  GRAALVM_DISTRIBUTION: 'mandrel'
   MAVEN_OPTS: '-Xmx4g'
 
 jobs:
+  # ─── Tests ────────────────────────────────────────────────────────────────
+
   test-jvm:
-    name: Test (JVM mode)
+    name: Test (JVM)
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '25'
-          cache: 'maven'
-      - name: Run tests
-        run: ./mvnw verify -pl operator-core,operator-controller,operator-webhook,operator-cli -am --batch-mode --no-transfer-progress
-
-  native-build-arm64:
-    name: Native Build (ARM64)
-    runs-on: ubuntu-24.04-arm
-    needs: test-jvm
-    strategy:
-      matrix:
-        module:
-          - name: operator-controller
-            artifact: kube-microvm-operator
-          - name: operator-cli
-            artifact: kubectl-microvm
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up GraalVM (Mandrel)
-        uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '25'
-          distribution: 'mandrel'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cache: 'maven'
-      - name: Verify GraalVM installation
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          java --version
-          native-image --version
-      - name: Build native image
-        run: |
-          ./mvnw package -pl ${{ matrix.module.name }} -am \
-            -Dnative -DskipTests --batch-mode --no-transfer-progress \
-            -Dquarkus.native.container-build=false
-      - name: Verify native binary
-        run: |
-          BINARY=$(find ${{ matrix.module.name }}/target -name "*-runner" -type f | head -1)
-          if [ -z "$BINARY" ]; then echo "ERROR: Native binary not found!"; exit 1; fi
-          echo "Native binary: $BINARY"
-          ls -lh "$BINARY"
-          file "$BINARY"
-      - name: Test native binary startup
-        run: |
-          BINARY=$(find ${{ matrix.module.name }}/target -name "*-runner" -type f | head -1)
-          if [ "${{ matrix.module.name }}" = "operator-cli" ]; then
-            timeout 5 "$BINARY" --help || true
-          else
-            "$BINARY" &
-            PID=$!
-            sleep 3
-            if kill -0 $PID 2>/dev/null; then
-              echo "Operator started successfully (PID: $PID)"
-              curl -sf http://localhost:8080/q/health/live || echo "Health check not available (expected without K8s)"
-              kill $PID
-            else
-              echo "WARNING: Operator exited (may need K8s context)"
-            fi
-          fi
-      - name: Upload native binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.module.artifact }}-linux-arm64
-          path: ${{ matrix.module.name }}/target/*-runner
-          retention-days: 30
-
-  container-build-arm64:
-    name: Container Image (ARM64)
-    runs-on: ubuntu-24.04-arm
-    needs: native-build-arm64
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      matrix:
-        include:
-          - module: operator-controller
-            image: kube-microvm-operator
-            dockerfile: Dockerfile
-          - module: operator-cli
-            image: kubectl-microvm
-            dockerfile: Dockerfile.cli
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Login to GHCR
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  helm-charts:
-    name: Helm Charts
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: test-jvm
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '25'
-          cache: 'maven'
-      - name: Generate Helm chart
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          ./mvnw package -pl operator-controller -am -DskipTests \
-            --batch-mode --no-transfer-progress \
-            -Dquarkus.helm.version=${VERSION} \
-            -Dquarkus.container-image.tag=${VERSION}
+          cache: maven
+      - run: ./mvnw verify -pl operator-core,operator-controller,operator-webhook,operator-cli,operator-tests -am --batch-mode --no-transfer-progress
 
-      - name: Add custom templates and re-package
+  # ─── Native CLI binary ────────────────────────────────────────────────────
+  # Builds kubectl-microvm native binary for linux/amd64 and linux/arm64.
+
+  native-cli:
+    name: Native CLI (${{ matrix.arch }})
+    needs: test-jvm
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: mandrel
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+      - name: Build native CLI
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          CHART_DIR=operator-controller/target/helm/kubernetes/kube-microvm-operator
-          # Replace generated serviceaccount.yaml with custom (IRSA-aware) and add webhook/networkpolicy
-          cp operator-controller/src/main/helm/templates/*.yaml ${CHART_DIR}/templates/
-          rm -f ${CHART_DIR}/../kube-microvm-operator-${VERSION}.tar.gz
-          helm package ${CHART_DIR} --version ${VERSION} --app-version ${VERSION} \
-            --destination operator-controller/target/helm/kubernetes/
-      - name: Login to GHCR
-        uses: docker/login-action@v3
+          ./mvnw package -pl operator-cli -am -Dnative -DskipTests \
+            --batch-mode --no-transfer-progress \
+            -Dquarkus.native.container-build=false
+      - name: Rename binary
+        run: |
+          BINARY=$(find operator-cli/target -name "*-runner" -type f | head -1)
+          cp "$BINARY" kubectl-microvm-linux-${{ matrix.arch }}
+          chmod +x kubectl-microvm-linux-${{ matrix.arch }}
+          echo "Binary: $(ls -lh kubectl-microvm-linux-${{ matrix.arch }})"
+          file kubectl-microvm-linux-${{ matrix.arch }}
+      - name: Smoke test
+        run: timeout 5 ./kubectl-microvm-linux-${{ matrix.arch }} --help || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kubectl-microvm-linux-${{ matrix.arch }}
+          path: kubectl-microvm-linux-${{ matrix.arch }}
+          retention-days: 7
+
+  # ─── Operator container image (per-arch) ─────────────────────────────────
+  # Builds the operator native container image per arch, pushes with arch suffix tag.
+
+  operator-image:
+    name: Operator Image (${{ matrix.arch }})
+    needs: test-jvm
+    if: github.event_name != 'pull_request'
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      # Each arch exports its digest for manifest merge
+      digest-amd64: ${{ matrix.arch == 'amd64' && steps.push.outputs.digest || '' }}
+      digest-arm64: ${{ matrix.arch == 'arm64' && steps.push.outputs.digest || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Push Helm chart to GHCR OCI
+      - name: Compute image tag
+        id: tag
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          helm push operator-controller/target/helm/kubernetes/kube-microvm-operator-${VERSION}.tar.gz \
-            oci://ghcr.io/${{ github.repository_owner }}/helm
-      - name: Upload Helm chart artifact
-        uses: actions/upload-artifact@v4
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "value=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          else
+            echo "value=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+      - name: Build and push (${{ matrix.arch }})
+        id: push
+        uses: docker/build-push-action@v6
         with:
-          name: helm-charts
-          path: operator-controller/target/helm/kubernetes/kube-microvm-operator-*.tar.gz
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/kube-microvm-operator:${{ steps.tag.outputs.value }}-${{ matrix.arch }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=operator-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=operator-${{ matrix.arch }}
+
+  # ─── Multi-arch manifest ──────────────────────────────────────────────────
+  # Creates a single multi-arch manifest pointing to both arch-specific images.
+
+  operator-manifest:
+    name: Operator Manifest (multi-arch)
+    needs: operator-image
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compute tags
+        id: tags
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${OWNER}/kube-microvm-operator"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            MAJOR="${VERSION%%.*}"
+            MINOR="${VERSION%.*}"
+            echo "tags=${IMAGE}:${VERSION} ${IMAGE}:${MINOR} ${IMAGE}:${MAJOR} ${IMAGE}:latest" >> $GITHUB_OUTPUT
+            echo "sha_tag=${VERSION}" >> $GITHUB_OUTPUT
+          else
+            SHA="${GITHUB_SHA::8}"
+            EXTRA=""
+            if [[ "${GITHUB_REF}" == refs/heads/main ]]; then EXTRA="${IMAGE}:main"; fi
+            echo "tags=${IMAGE}:${SHA} ${EXTRA}" >> $GITHUB_OUTPUT
+            echo "sha_tag=${SHA}" >> $GITHUB_OUTPUT
+          fi
+      - name: Create and push multi-arch manifest
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="ghcr.io/${OWNER}/kube-microvm-operator"
+          SHA_TAG="${{ steps.tags.outputs.sha_tag }}"
+          AMD="${IMAGE}:${SHA_TAG}-amd64"
+          ARM="${IMAGE}:${SHA_TAG}-arm64"
+          for TAG in ${{ steps.tags.outputs.tags }}; do
+            docker manifest create "${TAG}" "${AMD}" "${ARM}"
+            docker manifest push "${TAG}"
+          done
+
+  # ─── Helm chart ───────────────────────────────────────────────────────────
+  # Packages the Helm chart and pushes to GHCR OCI on version tags only.
+
+  helm-chart:
+    name: Helm Chart
+    needs: test-jvm
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Package and push chart
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          # Bump chart version to match release
+          sed -i "s/^version:.*/version: ${VERSION}/" charts/lambda-vm-ack-operator/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" charts/lambda-vm-ack-operator/Chart.yaml
+          helm package charts/lambda-vm-ack-operator --destination dist/
+          helm push dist/lambda-vm-ack-operator-${VERSION}.tgz oci://ghcr.io/${OWNER}/helm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: helm-chart
+          path: dist/*.tgz
           retention-days: 1
+
+  # ─── GitHub Release ───────────────────────────────────────────────────────
+  # Attaches CLI binaries + Helm chart + checksums to the GitHub Release.
 
   release:
     name: GitHub Release
-    runs-on: ubuntu-latest
+    needs: [native-cli, operator-manifest, helm-chart]
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [native-build-arm64, container-build-arm64, helm-charts]
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: read
     steps:
-      - name: Download kubectl-microvm binary
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: kubectl-microvm-linux-amd64
+          path: dist/
+      - uses: actions/download-artifact@v4
         with:
           name: kubectl-microvm-linux-arm64
           path: dist/
-
-      - name: Download Helm charts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: helm-charts
+          name: helm-chart
           path: dist/
-
-      - name: Rename CLI binary
-        run: |
-          mv dist/*-runner dist/kubectl-microvm-linux-arm64
-          chmod +x dist/kubectl-microvm-linux-arm64
-
       - name: Generate checksums
         working-directory: dist
         run: sha256sum * > checksums.sha256
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
+            dist/kubectl-microvm-linux-amd64
             dist/kubectl-microvm-linux-arm64
-            dist/kube-microvm-operator-*.tar.gz
+            dist/lambda-vm-ack-operator-*.tgz
             dist/checksums.sha256
