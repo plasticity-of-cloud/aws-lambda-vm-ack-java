@@ -24,7 +24,7 @@ import picocli.CommandLine.Command;
         StartCommand.class,
         LogsCommand.class,
         ExecCommand.class,
-        PoolCommand.class,
+        ReplicaSetCommand.class,
         ImageCommand.class,
         TokenCommand.class,
         NetworkCommand.class

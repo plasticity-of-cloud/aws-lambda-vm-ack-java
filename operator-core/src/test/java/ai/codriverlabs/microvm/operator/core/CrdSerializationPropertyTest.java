@@ -38,9 +38,9 @@ class CrdSerializationPropertyTest {
     }
 
     @Property(tries = 200)
-    void microVMPoolSpecRoundTrip(@ForAll("validMicroVMPoolSpec") MicroVMPoolSpec original) throws JsonProcessingException {
+    void microVMReplicaSetSpecRoundTrip(@ForAll("validMicroVMReplicaSetSpec") MicroVMReplicaSetSpec original) throws JsonProcessingException {
         String json = mapper.writeValueAsString(original);
-        MicroVMPoolSpec deserialized = mapper.readValue(json, MicroVMPoolSpec.class);
+        MicroVMReplicaSetSpec deserialized = mapper.readValue(json, MicroVMReplicaSetSpec.class);
         assert original.equals(deserialized) :
             "Round-trip failed.\nOriginal: " + original + "\nDeserialized: " + deserialized;
     }
@@ -106,13 +106,13 @@ class CrdSerializationPropertyTest {
     }
 
     @Provide
-    Arbitrary<MicroVMPoolSpec> validMicroVMPoolSpec() {
+    Arbitrary<MicroVMReplicaSetSpec> validMicroVMReplicaSetSpec() {
         return Combinators.combine(
             Arbitraries.integers().between(0, 100),
             Arbitraries.integers().between(0, 10).injectNull(0.3),
             Arbitraries.integers().between(1, 10).injectNull(0.3)
         ).as((replicas, minReady, maxSurge) -> {
-            MicroVMPoolSpec spec = new MicroVMPoolSpec();
+            MicroVMReplicaSetSpec spec = new MicroVMReplicaSetSpec();
             spec.setReplicas(replicas);
             spec.setMinReady(minReady);
             spec.setMaxSurge(maxSurge);

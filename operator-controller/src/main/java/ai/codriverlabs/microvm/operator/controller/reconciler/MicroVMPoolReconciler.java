@@ -19,13 +19,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Reconciler for MicroVMPool resources. Manages scaling of child MicroVM resources
+ * Reconciler for MicroVMReplicaSet resources. Manages scaling of child MicroVM resources
  * based on the pool's desired replicas, template, and scaling parameters.
  */
 @ControllerConfiguration(
     finalizerName = "lambda.aws.amazon.com/microvmpool-finalizer"
 )
-public class MicroVMPoolReconciler implements Reconciler<MicroVMPool> {
+public class MicroVMPoolReconciler implements Reconciler<MicroVMReplicaSet> {
 
     private static final Logger LOG = Logger.getLogger(MicroVMPoolReconciler.class);
     private static final String POOL_NAME_LABEL = "lambda.aws.amazon.com/pool-name";
@@ -42,16 +42,16 @@ public class MicroVMPoolReconciler implements Reconciler<MicroVMPool> {
     }
 
     @Override
-    public UpdateControl<MicroVMPool> reconcile(MicroVMPool resource, Context<MicroVMPool> context) {
+    public UpdateControl<MicroVMReplicaSet> reconcile(MicroVMReplicaSet resource, Context<MicroVMReplicaSet> context) {
         String name = resource.getMetadata().getName();
         String namespace = resource.getMetadata().getNamespace();
-        LOG.infof("Reconciling MicroVMPool %s/%s", namespace, name);
+        LOG.infof("Reconciling MicroVMReplicaSet %s/%s", namespace, name);
 
         long startTime = System.nanoTime();
         String outcome = "success";
 
         try {
-            MicroVMPoolSpec spec = resource.getSpec();
+            MicroVMReplicaSetSpec spec = resource.getSpec();
             int desiredReplicas = spec.getReplicas() != null ? spec.getReplicas() : 0;
             int maxSurge = spec.getMaxSurge() != null ? spec.getMaxSurge() : 1;
 
@@ -72,7 +72,7 @@ public class MicroVMPoolReconciler implements Reconciler<MicroVMPool> {
             return UpdateControl.patchStatus(resource).rescheduleAfter(RESYNC_PERIOD);
         } catch (Exception e) {
             outcome = "error";
-            LOG.errorf(e, "Error reconciling MicroVMPool %s/%s", namespace, name);
+            LOG.errorf(e, "Error reconciling MicroVMReplicaSet %s/%s", namespace, name);
             return UpdateControl.patchStatus(resource).rescheduleAfter(Duration.ofSeconds(10));
         } finally {
             long duration = System.nanoTime() - startTime;
@@ -88,7 +88,7 @@ public class MicroVMPoolReconciler implements Reconciler<MicroVMPool> {
             .getItems();
     }
 
-    private void scaleUp(MicroVMPool pool, List<MicroVM> currentChildren, int desiredReplicas, int maxSurge) {
+    private void scaleUp(MicroVMReplicaSet pool, List<MicroVM> currentChildren, int desiredReplicas, int maxSurge) {
         int currentCount = currentChildren.size();
         int maxTotal = desiredReplicas + maxSurge;
         int toCreate = Math.min(desiredReplicas - currentCount, MAX_CHANGES_PER_CYCLE);
@@ -103,7 +103,7 @@ public class MicroVMPoolReconciler implements Reconciler<MicroVMPool> {
         }
     }
 
-    private void scaleDown(MicroVMPool pool, List<MicroVM> currentChildren, int desiredReplicas) {
+    private void scaleDown(MicroVMReplicaSet pool, List<MicroVM> currentChildren, int desiredReplicas) {
         int toDelete = Math.min(currentChildren.size() - desiredReplicas, MAX_CHANGES_PER_CYCLE);
 
         LOG.infof("Scaling down pool %s/%s: deleting %d MicroVMs (current=%d, desired=%d)",
@@ -128,7 +128,7 @@ public class MicroVMPoolReconciler implements Reconciler<MicroVMPool> {
         }
     }
 
-    private void createChildMicroVM(MicroVMPool pool) {
+    private void createChildMicroVM(MicroVMReplicaSet pool) {
         MicroVMSpec template = pool.getSpec().getTemplate();
         String poolName = pool.getMetadata().getName();
         String namespace = pool.getMetadata().getNamespace();
@@ -162,7 +162,7 @@ public class MicroVMPoolReconciler implements Reconciler<MicroVMPool> {
             .create();
     }
 
-    private OwnerReference buildOwnerReference(MicroVMPool pool) {
+    private OwnerReference buildOwnerReference(MicroVMReplicaSet pool) {
         return new OwnerReferenceBuilder()
             .withApiVersion(pool.getApiVersion())
             .withKind(pool.getKind())
@@ -173,10 +173,10 @@ public class MicroVMPoolReconciler implements Reconciler<MicroVMPool> {
             .build();
     }
 
-    private void updatePoolStatus(MicroVMPool pool, List<MicroVM> children, int desiredReplicas) {
-        MicroVMPoolStatus status = pool.getStatus();
+    private void updatePoolStatus(MicroVMReplicaSet pool, List<MicroVM> children, int desiredReplicas) {
+        MicroVMReplicaSetStatus status = pool.getStatus();
         if (status == null) {
-            status = new MicroVMPoolStatus();
+            status = new MicroVMReplicaSetStatus();
             pool.setStatus(status);
         }
 

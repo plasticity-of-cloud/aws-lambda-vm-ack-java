@@ -1,7 +1,7 @@
 package ai.codriverlabs.microvm.operator.cli.commands;
 
-import ai.codriverlabs.microvm.operator.core.model.MicroVMPool;
-import ai.codriverlabs.microvm.operator.core.model.MicroVMPoolSpec;
+import ai.codriverlabs.microvm.operator.core.model.MicroVMReplicaSet;
+import ai.codriverlabs.microvm.operator.core.model.MicroVMReplicaSetSpec;
 import ai.codriverlabs.microvm.operator.core.model.MicroVMSpec;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -46,13 +46,13 @@ public class PoolCommand {
         @Override
         public void run() {
             try {
-                MicroVMPool pool = new MicroVMPool();
+                MicroVMReplicaSet pool = new MicroVMReplicaSet();
                 pool.setMetadata(new ObjectMetaBuilder()
                     .withName(name)
                     .withNamespace(namespace)
                     .build());
 
-                MicroVMPoolSpec spec = new MicroVMPoolSpec();
+                MicroVMReplicaSetSpec spec = new MicroVMReplicaSetSpec();
                 spec.setReplicas(replicas);
                 spec.setMaxSurge(1);
                 spec.setMinReady(0);
@@ -65,12 +65,12 @@ public class PoolCommand {
 
                 pool.setSpec(spec);
 
-                client.resources(MicroVMPool.class)
+                client.resources(MicroVMReplicaSet.class)
                     .inNamespace(namespace)
                     .resource(pool)
                     .create();
 
-                System.out.printf("MicroVMPool \"%s\" created with %d replicas%n", name, replicas);
+                System.out.printf("MicroVMReplicaSet \"%s\" created with %d replicas%n", name, replicas);
             } catch (KubernetesClientException e) {
                 if (e.getCode() == 0) {
                     System.err.println("Error: unable to connect to cluster");
@@ -100,23 +100,23 @@ public class PoolCommand {
         @Override
         public void run() {
             try {
-                MicroVMPool pool = client.resources(MicroVMPool.class)
+                MicroVMReplicaSet pool = client.resources(MicroVMReplicaSet.class)
                     .inNamespace(namespace)
                     .withName(name)
                     .get();
 
                 if (pool == null) {
-                    System.err.printf("Error: MicroVMPool \"%s\" not found in namespace \"%s\"%n", name, namespace);
+                    System.err.printf("Error: MicroVMReplicaSet \"%s\" not found in namespace \"%s\"%n", name, namespace);
                     System.exit(1);
                 }
 
                 pool.getSpec().setReplicas(replicas);
-                client.resources(MicroVMPool.class)
+                client.resources(MicroVMReplicaSet.class)
                     .inNamespace(namespace)
                     .resource(pool)
                     .patch();
 
-                System.out.printf("MicroVMPool \"%s\" scaled to %d replicas%n", name, replicas);
+                System.out.printf("MicroVMReplicaSet \"%s\" scaled to %d replicas%n", name, replicas);
             } catch (KubernetesClientException e) {
                 if (e.getCode() == 0) {
                     System.err.println("Error: unable to connect to cluster");

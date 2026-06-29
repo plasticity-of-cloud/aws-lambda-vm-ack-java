@@ -6,8 +6,9 @@ import io.fabric8.kubernetes.model.annotation.*;
 
 @Group("lambda.aws.amazon.com")
 @Version("v1alpha1")
-@Kind("MicroVMPool")
-@Singular("microvmpool")
-@Plural("microvmpools")
-public class MicroVMPool extends CustomResource<MicroVMPoolSpec, MicroVMPoolStatus> implements Namespaced {
+@Kind("MicroVMReplicaSet")
+@Singular("microvmreplicaset")
+@Plural("microvmreplicasets")
+public class MicroVMReplicaSet extends CustomResource<MicroVMReplicaSetSpec, MicroVMReplicaSetStatus>
+        implements Namespaced {
 }

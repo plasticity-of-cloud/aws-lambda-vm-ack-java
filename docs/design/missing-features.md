@@ -193,10 +193,42 @@ spec:
   minReady: 1              # exists
   maxSurge: 2              # exists
   scaleDown:
-    policy: MostRecentFirst   # MISSING
+    policy: MostRecentFirst   # MISSING (MostRecentFirst | OldestFirst | Random)
     stabilizationWindowSeconds: 60  # MISSING
-  desiredPoolState: Running   # MISSING (Running | Suspended)
+  desiredReplicaSetState: Running   # MISSING (Running | Suspended)
 ```
+
+### Implementation Plan
+
+**Phase 1 — Rename (no behavior change)**
+1. Rename model classes: `MicroVMPool` → `MicroVMReplicaSet`, etc.
+2. Update `PoolCommand.java` references and rename to `ReplicaSetCommand.java`
+3. Update CRD annotations (Kind, Plural, Singular)
+4. Verify build + 30 tests pass
+
+**Phase 2 — Spec completion**
+1. Add `ScaleDownPolicy` enum: `MostRecentFirst`, `OldestFirst`, `Random`
+2. Add `MicroVMReplicaSetScaleDownSpec`: `policy`, `stabilizationWindowSeconds`
+3. Add `desiredReplicaSetState` field: `Running | Suspended`
+4. Populate `MicroVMReplicaSetStatus` fields: `readyReplicas`, `currentReplicas`, `suspendedReplicas`, `updatedReplicas`, `observedGeneration`, `conditions`
+
+**Phase 3 — Reconciler**
+1. `MicroVMReplicaSetReconciler` with `@ControllerConfiguration`, watches owned MicroVM CRs
+2. Owner reference: all child MicroVM CRs have `ownerReferences` → ReplicaSet (cascade delete)
+3. Scale-up: create MicroVM CRs (generateName) until count == replicas, max 5/reconcile
+4. Scale-down: select victims by policy, set `spec.desiredState: Terminated`
+5. Health eviction: replace FAILED (>60s), stuck PENDING (>300s), unexpected TERMINATED children
+6. Suspend/resume cascade: when `desiredReplicaSetState` changes, patch all children's `desiredState`
+7. Status update: count children by state on every reconcile
+
+**Phase 4 — Tests**
+1. `MicroVMReplicaSetReconcilerIT`: scale-up creates N children, scale-down terminates excess,
+   health eviction replaces FAILED child, suspend cascades to all children
+
+**Phase 5 — CLI**
+1. `kubectl microvm rs list` — list all ReplicaSets with readyReplicas/currentReplicas/desiredReplicas
+2. `kubectl microvm rs describe --name X` — full spec + status + conditions
+3. `kubectl microvm rs scale --name X --replicas N` — patch spec.replicas
 
 ---
 

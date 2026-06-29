@@ -25,7 +25,7 @@ class MicroVMPoolReconcilerTest {
     @Test
     @DisplayName("Pool creation spawns correct number of child MicroVMs")
     void poolCreationSpawnsCorrectChildren() {
-        MicroVMPool pool = createPool("test-pool", 3, 1, 1);
+        MicroVMReplicaSet pool = createPool("test-pool", 3, 1, 1);
 
         // Simulate creating children
         List<MicroVM> children = createChildren(pool, 3);
@@ -41,7 +41,7 @@ class MicroVMPoolReconcilerTest {
     @Test
     @DisplayName("Scale up creates additional VMs respecting maxSurge")
     void scaleUpRespectsMaxSurge() {
-        MicroVMPool pool = createPool("test-pool", 5, 1, 2);
+        MicroVMReplicaSet pool = createPool("test-pool", 5, 1, 2);
         List<MicroVM> existing = createChildren(pool, 3);
 
         // Need 5, have 3, maxSurge=2 -> max 7 total allowed
@@ -55,7 +55,7 @@ class MicroVMPoolReconcilerTest {
     @Test
     @DisplayName("Scale down deletes most recently created VMs first (LIFO)")
     void scaleDownDeletesMostRecentFirst() {
-        MicroVMPool pool = createPool("test-pool", 2, 1, 1);
+        MicroVMReplicaSet pool = createPool("test-pool", 2, 1, 1);
         List<MicroVM> children = createChildrenWithTimestamps(pool, 5);
 
         // Scale from 5 to 2 -> delete 3 (but max 5 per cycle so all 3)
@@ -87,7 +87,7 @@ class MicroVMPoolReconcilerTest {
     @Test
     @DisplayName("Owner references set correctly on children")
     void ownerReferencesSetCorrectly() {
-        MicroVMPool pool = createPool("test-pool", 3, 1, 1);
+        MicroVMReplicaSet pool = createPool("test-pool", 3, 1, 1);
         pool.getMetadata().setUid("pool-uid-123");
 
         List<MicroVM> children = createChildren(pool, 3);
@@ -98,7 +98,7 @@ class MicroVMPoolReconcilerTest {
             assertEquals(1, refs.size());
 
             OwnerReference ref = refs.get(0);
-            assertEquals("MicroVMPool", ref.getKind());
+            assertEquals("MicroVMReplicaSet", ref.getKind());
             assertEquals("test-pool", ref.getName());
             assertEquals("pool-uid-123", ref.getUid());
             assertTrue(ref.getController());
@@ -108,7 +108,7 @@ class MicroVMPoolReconcilerTest {
     @Test
     @DisplayName("Pool status reflects actual child states")
     void poolStatusReflectsChildStates() {
-        MicroVMPool pool = createPool("test-pool", 5, 1, 1);
+        MicroVMReplicaSet pool = createPool("test-pool", 5, 1, 1);
         List<MicroVM> children = createChildren(pool, 5);
 
         // Set various states
@@ -132,7 +132,7 @@ class MicroVMPoolReconcilerTest {
     @Test
     @DisplayName("Scaling throttled to max 5 per cycle")
     void scalingThrottledToMaxFivePerCycle() {
-        MicroVMPool pool = createPool("test-pool", 20, 1, 5);
+        MicroVMReplicaSet pool = createPool("test-pool", 20, 1, 5);
         List<MicroVM> existing = createChildren(pool, 5);
 
         // Need to create 15 more, but max 5 per cycle
@@ -144,15 +144,15 @@ class MicroVMPoolReconcilerTest {
 
     // Helper methods
 
-    private MicroVMPool createPool(String name, int replicas, int minReady, int maxSurge) {
-        MicroVMPool pool = new MicroVMPool();
+    private MicroVMReplicaSet createPool(String name, int replicas, int minReady, int maxSurge) {
+        MicroVMReplicaSet pool = new MicroVMReplicaSet();
         ObjectMeta meta = new ObjectMeta();
         meta.setName(name);
         meta.setNamespace("default");
         meta.setUid("pool-uid-" + name);
         pool.setMetadata(meta);
 
-        MicroVMPoolSpec spec = new MicroVMPoolSpec();
+        MicroVMReplicaSetSpec spec = new MicroVMReplicaSetSpec();
         spec.setReplicas(replicas);
         spec.setMinReady(minReady);
         spec.setMaxSurge(maxSurge);
@@ -164,20 +164,20 @@ class MicroVMPoolReconcilerTest {
         spec.setTemplate(template);
         pool.setSpec(spec);
 
-        MicroVMPoolStatus status = new MicroVMPoolStatus();
+        MicroVMReplicaSetStatus status = new MicroVMReplicaSetStatus();
         status.setDesiredReplicas(replicas);
         pool.setStatus(status);
 
         return pool;
     }
 
-    private List<MicroVM> createChildren(MicroVMPool pool, int count) {
+    private List<MicroVM> createChildren(MicroVMReplicaSet pool, int count) {
         return IntStream.range(0, count)
             .mapToObj(i -> createChild(pool, "child-" + i, Instant.now().toString()))
             .collect(Collectors.toList());
     }
 
-    private List<MicroVM> createChildrenWithTimestamps(MicroVMPool pool, int count) {
+    private List<MicroVM> createChildrenWithTimestamps(MicroVMReplicaSet pool, int count) {
         return IntStream.range(0, count)
             .mapToObj(i -> {
                 String timestamp = Instant.parse("2025-01-01T00:00:00Z")
@@ -187,7 +187,7 @@ class MicroVMPoolReconcilerTest {
             .collect(Collectors.toList());
     }
 
-    private MicroVM createChild(MicroVMPool pool, String name, String creationTimestamp) {
+    private MicroVM createChild(MicroVMReplicaSet pool, String name, String creationTimestamp) {
         MicroVM vm = new MicroVM();
         ObjectMeta meta = new ObjectMeta();
         meta.setName(name);
@@ -196,7 +196,7 @@ class MicroVMPoolReconcilerTest {
         meta.setLabels(Map.of(POOL_LABEL, pool.getMetadata().getName()));
 
         OwnerReference ownerRef = new OwnerReference();
-        ownerRef.setKind("MicroVMPool");
+        ownerRef.setKind("MicroVMReplicaSet");
         ownerRef.setName(pool.getMetadata().getName());
         ownerRef.setUid(pool.getMetadata().getUid());
         ownerRef.setController(true);
