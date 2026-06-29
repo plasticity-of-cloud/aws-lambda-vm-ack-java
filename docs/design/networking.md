@@ -45,10 +45,12 @@ Lambda MicroVMs run in **AWS-managed infrastructure** (Fargate-style). They do N
 
 The `MicroVMNetwork` CRD is a **reconciled resource**. The operator creates and manages an AWS Lambda Network Connector based on the CR spec.
 
+> **Important**: Network Connectors are managed via the `lambda-core` AWS API (service ID `Lambda Core`, endpoint prefix `lambda`), **not** the `lambda-microvms` API. The operator requires a second generated SDK client (`operator-aws-client-core`) built from the `lambda-core` botocore service model.
+
 ```
 MicroVMNetwork CR (Kubernetes)
         ↓ reconcile
-AWS Network Connector (AWS resource)
+LambdaCoreClient.createNetworkConnector()
         ↓ provisions
 ENIs in customer VPC subnets
         ↓ routes
@@ -59,8 +61,9 @@ Outbound traffic from MicroVM → customer VPC → private resources
 
 ```
 1. User creates MicroVMNetwork CR
-2. Operator calls `lambda-core:CreateNetworkConnector`
+2. Operator calls LambdaCoreClient.createNetworkConnector()
    - Passes SubnetIds, SecurityGroupIds, NetworkProtocol, OperatorRoleArn
+   - Note: VpcId is NOT a parameter — Lambda Core derives VPC from subnets
 3. AWS provisions ENIs in specified subnets (PENDING → ACTIVE)
 4. Operator updates status.connectorArn, status.connectorState
 5. MicroVMs referencing this network can now use the connector ARN at run-microvm time

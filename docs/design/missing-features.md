@@ -9,32 +9,152 @@ It is the authoritative TODO for engineering work beyond the initial API coverag
 
 **Status**: Model and design exist. Reconciler not implemented.
 
-**What exists:**
-- `MicroVMNetwork` / `MicroVMNetworkSpec` model classes
-- Full design in `docs/design/networking.md`
-- Webhook validates `networkRef` field on MicroVMSpec
-- `MicroVMReconciler` reads `networkRef` and passes `connectorArn` to RunMicrovm (assumes status already populated)
+**Revised design** (supersedes `docs/design/networking.md`):
 
-**What's missing:**
+VPC Network Connectors are managed via the `lambda-core` API (separate AWS service, distinct from `lambda-microvms`). The operator must generate a second SDK client from the `lambda-core` botocore service model, exactly as it did for `lambda-microvms`.
 
-| Gap | Detail |
-|-----|--------|
-| `MicroVMNetworkReconciler` | No reconciler class exists. Operator does not call `CreateNetworkConnector` / `DeleteNetworkConnector` / poll state |
-| `MicroVMNetworkStatus` | No status class exists — `connectorArn`, `connectorState`, `conditions` are never written |
-| Network Connector API client | `MicroVMNetworkClient` wrapper does not exist — the SDK methods exist but are not wired |
-| IAM CloudFormation template | `iam/` has the operator role but no template for the customer's VPC ENI role (`operatorRoleArn`) |
-| Webhook validation | Webhook currently only validates that `networkRef` is a non-empty string; it does not check the referenced CR exists or is Ready |
-| CLI | `kubectl microvm network` subcommand does not exist |
+### SDK Client Generation
 
-**AWS APIs required:**
-- `CreateNetworkConnector` — provisions ENIs in customer VPC subnets
+A new Maven module `operator-aws-client-core` is required:
+- Feeds `/snap/aws-cli/.../botocore/data/lambda-core/2026-04-30/service-2.json` into `codegen-maven-plugin`
+- Generates `LambdaCoreClient` / `LambdaCoreAsyncClient` in package `ai.codriverlabs.microvm.aws.lambdacore`
+- `operator-controller` adds `operator-aws-client-core` as a dependency alongside `operator-aws-client`
+
+`lambda-core` operations needed:
+- `CreateNetworkConnector` — provision ENIs in customer VPC subnets
 - `GetNetworkConnector` — poll PENDING → ACTIVE / FAILED
+- `UpdateNetworkConnector` — update subnet/SG config
 - `DeleteNetworkConnector` — cleanup on CR delete
 - `ListNetworkConnectors` — discovery / drift detection
 
-**Unresolved design questions:**
-- Should `MicroVMNetwork` be cluster-scoped or namespace-scoped? Currently `Namespaced`. Cross-namespace reference from a MicroVM needs a policy decision.
-- Should the operator validate that subnets/SGs exist via `ec2:Describe*`? Adds EC2 IAM permissions to the operator role.
+### MicroVMNetworkSpec (revised)
+
+Current `MicroVMNetworkSpec` has `{vpcId, subnetIds, securityGroupIds}` which maps directly to `NetworkConnectorVpcEgressConfiguration`. Add `operatorRoleArn` and `networkProtocol`:
+
+```yaml
+spec:
+  subnetIds:
+    - subnet-abc123
+    - subnet-def456
+  securityGroupIds:
+    - sg-xyz789
+  operatorRoleArn: arn:aws:iam::864899852480:role/MicroVMNetworkConnectorRole
+  networkProtocol: IPv4          # IPv4 | DualStack (default: IPv4)
+  region: us-east-1
+  tags:
+    environment: production
+```
+
+Note: `vpcId` can be removed from spec — the Lambda Core API derives the VPC from the subnets. It is not a parameter to `CreateNetworkConnector`.
+
+### MicroVMNetworkStatus (new class required)
+
+```java
+public class MicroVMNetworkStatus {
+    String connectorArn;        // set after CreateNetworkConnector returns
+    String connectorId;
+    String connectorState;      // PENDING | ACTIVE | INACTIVE | FAILED | DELETING | DELETE_FAILED
+    String stateReason;
+    String stateReasonCode;
+    String observedGeneration;
+    List<Condition> conditions; // Ready=True when ACTIVE
+}
+```
+
+### Reconciler Flow
+
+```
+CREATE:
+  1. Call CreateNetworkConnector(name, subnetIds, securityGroupIds, operatorRoleArn, networkProtocol)
+     → set status.connectorArn, status.connectorState=PENDING
+  2. Poll GetNetworkConnector every 15s until ACTIVE or FAILED
+  3. On ACTIVE: set condition Ready=True, reschedule at 5min
+  4. On FAILED: set condition Ready=False with stateReason, emit Warning event
+
+UPDATE (spec change detected via observedGeneration):
+  1. Call UpdateNetworkConnector with new subnetIds/securityGroupIds
+  2. Poll until ACTIVE or FAILED (same as create)
+  Note: Cannot update while MicroVMs are running — webhook should warn; reconciler emits event
+
+DELETE (finalizer: lambda.aws.amazon.com/network-connector-finalizer):
+  1. Check no MicroVMs reference this network (list CRs with spec.networkRef=<name>)
+  2. If in-use: block deletion, emit Warning event, requeue
+  3. Call DeleteNetworkConnector
+  4. Poll until state=DELETING completes (connector disappears from GetNetworkConnector → 404)
+  5. Remove finalizer
+```
+
+### MicroVMNetworkClient wrapper
+
+New class `MicroVMNetworkClient` in `operator-controller`:
+```java
+CompletableFuture<CreateNetworkConnectorResponse> createConnector(MicroVMNetworkSpec spec, String name);
+CompletableFuture<GetNetworkConnectorResponse>    getConnector(String connectorArn);
+CompletableFuture<UpdateNetworkConnectorResponse> updateConnector(String connectorArn, MicroVMNetworkSpec spec);
+CompletableFuture<DeleteNetworkConnectorResponse> deleteConnector(String connectorArn);
+CompletableFuture<List<NetworkConnectorSummary>>  listConnectors();
+```
+
+### MicroVM ↔ Network Association (unchanged)
+
+When `MicroVM` has `spec.networkRef`, the `MicroVMReconciler`:
+1. Looks up the referenced `MicroVMNetwork` CR
+2. Checks `status.connectorState == ACTIVE`
+3. Passes `status.connectorArn` as egress connector to `RunMicrovm`
+4. If not ACTIVE: MicroVM stays PENDING with condition `NetworkReady=False`
+
+### Lambda-Managed Connectors (no reconciliation needed)
+
+For the standard AWS-managed connectors, users can reference them directly in `MicroVMSpec` without a `MicroVMNetwork` CR:
+
+| Name | ARN |
+|------|-----|
+| `ALL_INGRESS` | `arn:aws:lambda:<region>:aws:network-connector:aws-network-connector:ALL_INGRESS` |
+| `INTERNET_EGRESS` | `arn:aws:lambda:<region>:aws:network-connector:aws-network-connector:INTERNET_EGRESS` |
+| `NO_INGRESS` | `arn:aws:lambda:<region>:aws:network-connector:aws-network-connector:NO_INGRESS` |
+
+### IAM Requirements
+
+The operator's pod identity role needs:
+```json
+{
+  "Action": [
+    "lambda:CreateNetworkConnector",
+    "lambda:GetNetworkConnector",
+    "lambda:UpdateNetworkConnector",
+    "lambda:DeleteNetworkConnector",
+    "lambda:ListNetworkConnectors"
+  ],
+  "Resource": "*",
+  "Effect": "Allow"
+}
+```
+
+The customer also needs a separate ENI provisioning role (`spec.operatorRoleArn`) trusted by `network-connectors.lambda.amazonaws.com` with `ec2:CreateNetworkInterface` + `ec2:CreateTags`.
+
+### CLI
+
+New subcommand group `kubectl microvm network`:
+```bash
+kubectl microvm network list
+kubectl microvm network describe --name my-network
+kubectl microvm network create --name my-network --subnets subnet-abc,subnet-def --security-groups sg-xyz --role arn:...
+kubectl microvm network delete --name my-network
+```
+
+### What's missing (implementation checklist)
+
+- [ ] New Maven module `operator-aws-client-core` with `lambda-core` codegen
+- [ ] `MicroVMNetworkStatus` model class
+- [ ] Update `MicroVMNetworkSpec`: remove `vpcId`, add `operatorRoleArn`, `networkProtocol`, `region`, `tags`
+- [ ] `MicroVMNetworkClient` wrapper class
+- [ ] `MicroVMNetworkReconciler` (create / poll / update / delete with finalizer)
+- [ ] `MicroVMReconciler`: check `NetworkReady` condition before RunMicrovm (currently assumes status is populated)
+- [ ] Validating webhook: check referenced `MicroVMNetwork` CR exists and is Ready
+- [ ] IAM role update (`iam/kube-microvm-operator-role.yaml`) with lambda-core permissions
+- [ ] IAM CloudFormation template for customer's ENI role
+- [ ] `kubectl microvm network` CLI subcommands
+- [ ] Integration tests: `MicroVMNetworkReconcilerIT`
 
 ---
 
