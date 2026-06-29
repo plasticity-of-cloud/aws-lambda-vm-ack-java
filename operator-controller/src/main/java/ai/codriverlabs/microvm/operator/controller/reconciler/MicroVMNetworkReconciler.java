@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 public class MicroVMNetworkReconciler implements Reconciler<MicroVMNetwork>, Cleaner<MicroVMNetwork> {
 
     private static final Logger LOG = Logger.getLogger(MicroVMNetworkReconciler.class);
-    private static final Duration POLL_INTERVAL = Duration.ofSeconds(15);
+    private static final Duration POLL_INTERVAL = Duration.ofSeconds(5);
     private static final Duration RESYNC = Duration.ofMinutes(5);
     private static final long AWS_TIMEOUT_S = 30;
 
