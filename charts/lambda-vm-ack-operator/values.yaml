@@ -45,3 +45,14 @@ watchAllNamespaces: true
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# Token injection (Phase 2) — operator token sub-resource endpoint
+tokenEndpoint:
+  enabled: true
+  maxExpiryMinutes: 60
+
+# Sidecar image for auto-injected microvm-auth-agent
+authAgent:
+  image:
+    repository: ghcr.io/plasticity-of-cloud/microvm-auth-agent
+    tag: latest

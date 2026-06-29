@@ -234,21 +234,42 @@ spec:
 
 ## 3. Token Injection (Phase 1 — Operator Sub-Resource)
 
-**Status**: Full design in `docs/design/roadmap/token-injection.md`. Not implemented.
+**Status**: Full design in `docs/design/roadmap/token-injection.md`. Phase 2 implementation in progress on `feat/token-injection-phase1`.
 
 **Problem**: `kubectl microvm token` requires AWS credentials in the calling process. Pods inside the cluster that need to connect to MicroVMs cannot call AWS directly (no credentials, no IAM role).
 
 **Solution**: Operator exposes a REST sub-resource endpoint. Pods call the operator via Kubernetes RBAC (ServiceAccount token), operator calls AWS and returns the MicroVM auth token.
 
-**What's missing:**
+### Implementation Plan
 
-| Gap | Detail |
-|-----|--------|
-| `/tokens` REST endpoint in operator | Quarkus REST endpoint: `POST /apis/lambda.aws.amazon.com/v1alpha1/namespaces/{ns}/microvms/{name}/tokens` |
-| Token request CRD (optional) | Alternative: `MicroVMTokenRequest` CR (like `CertificateSigningRequest`) |
-| RBAC policy | New ClusterRole `microvm-token-requester` allowing `create` on `microvms/tokens` subresource |
-| CLI integration | `kubectl microvm token` should fall back to operator sub-resource when no AWS credentials in environment |
-| Helm chart | ServiceAccount + RBAC for pods that need token access |
+**Phase 2a — Operator token REST endpoint**
+- Quarkus JAX-RS: `POST /apis/lambda.aws.amazon.com/v1alpha1/namespaces/{ns}/microvms/{name}/token`
+- Request: `{expirationInMinutes, allowedPorts}`
+- Validates caller k8s ServiceAccount token via `TokenReview` API
+- Checks RBAC via `SubjectAccessReview`: `create` on `microvms/token`
+- Resolves `microvmId` from `MicroVM` CR `status.microVmId`
+- Calls `CreateMicrovmAuthToken` → returns `{authToken, endpoint, expiresAt}`
+
+**Phase 2b — RBAC scaffolding in Helm chart**
+- `ClusterRole` + `ClusterRoleBinding` example for `microvms/token` sub-resource
+- Helm `values.yaml` toggle: `tokenEndpoint.enabled: true`
+
+**Phase 2c — `microvm-auth-agent` sidecar module** *(new module `operator-auth-agent`)*
+- Quarkus native binary
+- Polls `POST .../token`, writes files to `/var/run/microvm/`
+- Atomic write (rename, not truncate)
+- Refresh at 80% of expiry interval
+
+**Phase 2d — Pod mutating webhook**
+- New webhook path `/mutate-pod`
+- Detects `lambda.microvm.auth: <vm-name>` annotation
+- Injects sidecar + emptyDir (medium: Memory) + main container volumeMount
+
+### What's in this branch
+- [ ] Phase 2a: token REST endpoint
+- [ ] Phase 2b: RBAC Helm additions
+- [ ] Phase 2c: `operator-auth-agent` module (sidecar)
+- [ ] Phase 2d: Pod mutating webhook
 
 ---
 
