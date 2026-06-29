@@ -25,11 +25,14 @@ public class MicroVMNetworkReconciler implements Reconciler<MicroVMNetwork>, Cle
     private static final Duration RESYNC = Duration.ofMinutes(5);
     private static final long AWS_TIMEOUT_S = 30;
 
-    @Inject
-    MicroVMNetworkClient networkClient;
+    private final MicroVMNetworkClient networkClient;
+    private final KubernetesClient k8s;
 
     @Inject
-    KubernetesClient k8s;
+    public MicroVMNetworkReconciler(MicroVMNetworkClient networkClient, KubernetesClient k8s) {
+        this.networkClient = networkClient;
+        this.k8s = k8s;
+    }
 
     @Override
     public UpdateControl<MicroVMNetwork> reconcile(MicroVMNetwork resource, Context<MicroVMNetwork> context) {

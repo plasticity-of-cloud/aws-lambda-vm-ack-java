@@ -27,6 +27,11 @@
         </dependency>
         <dependency>
             <groupId>ai.codriverlabs</groupId>
+            <artifactId>operator-aws-client-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ai.codriverlabs</groupId>
             <artifactId>operator-controller</artifactId>
             <version>${project.version}</version>
         </dependency>
