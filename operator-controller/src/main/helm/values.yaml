@@ -14,7 +14,7 @@ webhook:
       kind: ClusterIssuer
 
 networkPolicy:
-  enabled: true
+  enabled: false
 
 # Token injection Phase 2 — operator token sub-resource endpoint
 tokenEndpoint:
