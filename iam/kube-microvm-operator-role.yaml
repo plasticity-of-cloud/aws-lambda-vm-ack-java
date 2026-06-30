@@ -51,8 +51,12 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          # MicroVM lifecycle management
-          - Sid: MicroVMOperations
+          # All Lambda MicroVM operations — scoped to this region + account.
+          # NOTE: IAM resource-level scoping by sub-resource type (microvm:*, microvm-image:*,
+          # network-connector:*) is NOT reliable because the service reports cross-resource ARNs
+          # in authorization context (e.g. GetMicrovm evaluates against microvm-image ARN).
+          # Use a single statement with arn:aws:lambda:REGION:ACCOUNT:* for all actions.
+          - Sid: LambdaMicroVMAllActions
             Effect: Allow
             Action:
               - lambda:RunMicrovm
@@ -63,12 +67,6 @@ Resources:
               - lambda:TerminateMicrovm
               - lambda:CreateMicrovmAuthToken
               - lambda:CreateMicrovmShellAuthToken
-            Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:microvm:*'
-
-          # MicroVM image management (region-scoped)
-          - Sid: MicroVMImageOperations
-            Effect: Allow
-            Action:
               - lambda:CreateMicrovmImage
               - lambda:GetMicrovmImage
               - lambda:UpdateMicrovmImage
@@ -80,7 +78,16 @@ Resources:
               - lambda:DeleteMicrovmImageVersion
               - lambda:GetMicrovmImageBuild
               - lambda:ListMicrovmImageBuilds
-            Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:microvm-image:*'
+              - lambda:CreateNetworkConnector
+              - lambda:GetNetworkConnector
+              - lambda:UpdateNetworkConnector
+              - lambda:DeleteNetworkConnector
+              - lambda:ListNetworkConnectors
+              - lambda:PassNetworkConnector
+              - lambda:TagResource
+              - lambda:UntagResource
+              - lambda:ListTags
+            Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:*'
 
           # AWS-managed base images (read-only, cross-account)
           - Sid: ManagedBaseImages
@@ -89,27 +96,6 @@ Resources:
               - lambda:ListManagedMicrovmImages
               - lambda:ListManagedMicrovmImageVersions
             Resource: '*'
-
-          # Network connector management (region-scoped, VPC resources are regional)
-          - Sid: NetworkConnectorOperations
-            Effect: Allow
-            Action:
-              - lambda:CreateNetworkConnector
-              - lambda:GetNetworkConnector
-              - lambda:UpdateNetworkConnector
-              - lambda:DeleteNetworkConnector
-              - lambda:ListNetworkConnectors
-              - lambda:PassNetworkConnector
-            Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:network-connector:*'
-
-          # Tagging (region-scoped)
-          - Sid: Tagging
-            Effect: Allow
-            Action:
-              - lambda:TagResource
-              - lambda:UntagResource
-              - lambda:ListTags
-            Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:*'
 
           # STS for caller identity verification (health check)
           - Sid: Identity
