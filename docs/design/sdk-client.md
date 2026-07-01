@@ -78,3 +78,53 @@ cp <botocore>/data/lambda-microvms/2025-09-09/paginators-1.json \
 
 The generated Java client will be regenerated automatically on every build — no manual
 code changes are needed unless the API version changes.
+
+## AWS Lambda Core (Network Connectors)
+
+The `lambda-core` API handles Network Connector management (VPC egress for MicroVMs).
+It uses a separate service model from `lambda-microvms`.
+
+| Property | Value |
+|----------|-------|
+| API version | `2026-04-30` |
+| Protocol | `rest-json` |
+| Endpoint prefix | `lambda` |
+| Signing name | `lambda` |
+| Source module | `operator-aws-client-core` |
+| Generated package | `ai.codriverlabs.microvm.aws.lambdacore` |
+
+### Service Model Source
+
+The `service-2.json` and `paginators-1.json` for lambda-core were also obtained from the
+AWS CLI snap package:
+
+```
+/snap/aws-cli/2277/aws/dist/awscli/botocore/data/lambda-core/2026-04-30/
+```
+
+### ACK Controller
+
+AWS Controllers for Kubernetes (ACK) has an official controller for Lambda Core:
+
+- **Repository**: https://github.com/aws-controllers-k8s/lambdacore-controller
+- **Status**: Public (same timeline as Lambda MicroVMs launch)
+- **Resources managed**: Network Connectors (same API our `MicroVMNetworkReconciler` uses)
+
+The ACK `lambdacore-controller` provides a Go-based alternative for managing Network Connectors
+as Kubernetes custom resources. Our operator uses the same underlying API but via the Java SDK
+codegen approach, integrated with our MicroVM lifecycle (e.g. blocking network deletion while
+MicroVMs are attached).
+
+### Relationship to KubeMicroVM
+
+| Concern | KubeMicroVM Operator | ACK lambdacore-controller |
+|---------|---------------------|---------------------------|
+| Language | Java (Quarkus + JOSDK) | Go (ACK runtime) |
+| Network Connectors | ✅ Integrated with MicroVM lifecycle | ✅ Standalone CRUD |
+| MicroVM management | ✅ Full lifecycle | ❌ Not in scope |
+| Image management | ✅ Full lifecycle | ❌ Not in scope |
+| Deletion protection | ✅ Blocks if VMs attached | ❌ No cross-resource awareness |
+| Auth token injection | ✅ Pod webhook + CLI | ❌ Not in scope |
+
+For users who only need Network Connector management without the MicroVM operator, the ACK
+controller is a lighter-weight alternative.
