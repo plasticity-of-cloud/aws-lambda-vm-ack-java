@@ -37,6 +37,7 @@ public class MicroVMNetworkClient {
                 .securityGroupIds(spec.getSecurityGroupIds())
                 .networkProtocol(NetworkProtocol.fromValue(
                         spec.getNetworkProtocol() != null ? spec.getNetworkProtocol() : "IPv4"))
+                .associatedComputeResourceTypes(ComputeResourceType.MICRO_VM)
                 .build();
         var req = CreateNetworkConnectorRequest.builder()
                 .name(name)

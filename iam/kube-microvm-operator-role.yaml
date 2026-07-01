@@ -37,6 +37,10 @@ Resources:
             Action:
               - sts:AssumeRole
               - sts:TagSession
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       Tags:
         - Key: app
           Value: kube-microvm-operator
@@ -111,6 +115,36 @@ Resources:
             Effect: Allow
             Action: iam:PassRole
             Resource: !Ref BuildRoleArn
+
+  # EC2 + IAM permissions for network connector management
+  NetworkConnectorPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: KubeMicroVMNetworkConnector
+      Description: EC2 and IAM permissions required for Lambda network connector ENI management
+      Roles:
+        - !Ref OperatorRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: EC2NetworkInterfaces
+            Effect: Allow
+            Action:
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeSubnets
+              - ec2:DescribeVpcs
+              - ec2:CreateNetworkInterface
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DeleteNetworkInterface
+            Resource: '*'
+          - Sid: PassSelfForNetworkConnector
+            Effect: Allow
+            Action: iam:PassRole
+            Resource: !GetAtt OperatorRole.Arn
+          - Sid: LambdaServiceLinkedRole
+            Effect: Allow
+            Action: iam:CreateServiceLinkedRole
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/lambda.amazonaws.com/*'
 
 Outputs:
   RoleArn:
