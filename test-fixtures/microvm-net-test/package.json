@@ -1,0 +1,9 @@
+{
+  "name": "microvm-net-test",
+  "version": "1.0.0",
+  "description": "MicroVM test fixture for outbound connectivity verification",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  }
+}
