@@ -102,6 +102,7 @@ terminated externally) and reconciles.
 
 | Feature | Notes |
 |---------|-------|
+| **User guide: Authentication** | Document token endpoint, RBAC setup, TLS, --direct vs operator flow |
 | `kubectl microvm exec` | Shell access via ShellAuthToken |
 | ReplicaSet rolling update | Template change → gradual replacement |
 | Cross-namespace imageRef | ClusterMicroVMImage resource |
