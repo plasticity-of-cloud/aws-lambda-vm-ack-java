@@ -82,6 +82,8 @@ Resources:
               - lambda:DeleteMicrovmImageVersion
               - lambda:GetMicrovmImageBuild
               - lambda:ListMicrovmImageBuilds
+              - lambda:ListManagedMicrovmImages
+              - lambda:ListManagedMicrovmImageVersions
               - lambda:CreateNetworkConnector
               - lambda:GetNetworkConnector
               - lambda:UpdateNetworkConnector
