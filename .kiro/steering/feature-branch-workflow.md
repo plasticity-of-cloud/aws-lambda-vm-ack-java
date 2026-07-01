@@ -29,12 +29,15 @@ git checkout -b feature/<name>
 
 ### 4. Test Locally
 
+Only required when there are **code changes** (Java, properties, Helm templates).
+Skip for documentation-only branches.
+
 ```bash
 ./mvnw -B install -DskipTests -q && \
 ./mvnw -B -pl operator-tests verify
 ```
 
-**All 47+ tests must pass before proceeding.** No exceptions.
+**All 49+ tests must pass before proceeding.** No exceptions when code has changed.
 
 ### 5. Deploy to EKS
 
@@ -81,7 +84,8 @@ Only merge after all steps complete successfully.
 
 ## Rules
 
-- **Never push with failing tests** — run the full suite before every push
+- **Never push with failing tests** — run the full suite before every push **with code changes**
+- **Skip tests for doc-only changes** — `.md`, `.kiro/`, `docs/`, `test-fixtures/`, `.github/`
 - **Never use `helm upgrade` during dev** — always uninstall + install
 - **Always delete webhooks before CRs** when operator is not running
 - **Document results** of each step (logs, status output) in the PR or commit messages

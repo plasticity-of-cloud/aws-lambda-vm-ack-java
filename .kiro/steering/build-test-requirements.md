@@ -2,18 +2,20 @@
 
 ## Pre-Push Verification
 
-All builds, unit tests, and integration tests **must pass locally** before pushing code changes.
+Run the full test suite before pushing **only when there are code changes**.
 
 ```bash
-# Full verification (required before every push)
+# Full verification (required before pushing code changes)
 cd /home/ubuntu/projects/pl-cloud/KubeMicroVM
 ./mvnw -B install -DskipTests --no-transfer-progress -q && \
 ./mvnw -B -pl operator-tests verify --no-transfer-progress
 ```
 
-If tests fail, fix the issue before pushing. Do not push with `--skip-tests` unless:
-1. The change is documentation-only (`.md`, `.kiro/`)
-2. The change is CI/workflow-only (`.github/`)
+**Skip tests when pushing:**
+- Documentation-only changes (`.md`, `.kiro/`, `docs/`)
+- CI/workflow-only changes (`.github/`)
+- Test fixture files (`test-fixtures/`)
+- UAT result files
 
 ## What Gets Verified
 
