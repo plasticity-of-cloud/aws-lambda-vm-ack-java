@@ -29,7 +29,7 @@ class DefaultMicroVMClientIT {
     void setUp() throws Exception {
         mockSdk = mock(LambdaMicrovmsAsyncClient.class);
         // Construct DefaultMicroVMClient and inject mock SDK via reflection
-        client = new DefaultMicroVMClient("us-east-1");
+        client = new DefaultMicroVMClient("us-east-1", java.util.Optional.empty());
         var sdkField = DefaultMicroVMClient.class.getDeclaredField("sdk");
         sdkField.setAccessible(true);
         sdkField.set(client, mockSdk);
