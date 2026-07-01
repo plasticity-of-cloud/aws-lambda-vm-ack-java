@@ -1,111 +1,89 @@
-# AWS Lambda MicroVMs API — Implementation Status
+# Implementation Status
 
-Last updated: 2026-06-28
+Last updated: 2026-07-01 (post v1.0.0-rc1 E2E validation)
 
-All 24 operations come from the botocore service model (`lambda-microvms/2025-09-09`).
-See [sdk-client.md](sdk-client.md) for model provenance and endpoint details.
+## AWS Lambda MicroVMs API (24 operations)
 
----
+| Operation | Client | Reconciler | E2E on EKS | Notes |
+|-----------|--------|------------|------------|-------|
+| RunMicrovm | ✅ | ✅ imageRef resolution | ✅ | |
+| GetMicrovm | ✅ | ✅ poll + drift | ✅ | |
+| SuspendMicrovm | ✅ | ✅ | ❌ | Not tested on real cluster |
+| ResumeMicrovm | ✅ | ✅ | ❌ | Not tested on real cluster |
+| TerminateMicrovm | ✅ | ✅ finalizer | ✅ | |
+| ListMicrovms | ✅ | — | — | CLI lists CRs only |
+| CreateMicrovmAuthToken | ✅ | — | ✅ | via kubectl plugin `--direct` |
+| CreateMicrovmShellAuthToken | ✅ | — | ❌ | `kubectl microvm exec` not tested |
+| TagResource | ✅ | ❌ disabled | — | API doesn't support `microvm:` resource type |
+| UntagResource | ✅ | ❌ | — | Same as above |
+| ListTags | ✅ | ❌ | — | Same as above |
+| CreateMicrovmImage | ✅ | ✅ | ✅ | |
+| GetMicrovmImage | ✅ | ✅ poll | ✅ | |
+| UpdateMicrovmImage | ✅ | ✅ generation change | ❌ | Not tested on real cluster |
+| DeleteMicrovmImage | ✅ | ✅ finalizer | ✅ | |
+| GetMicrovmImageVersion | ✅ | ✅ | ✅ | |
+| ListMicrovmImageVersions | ✅ | ✅ status.versions[] | ✅ | |
+| UpdateMicrovmImageVersion | ✅ | ✅ auto-activate | ✅ | |
+| DeleteMicrovmImageVersion | ❌ | ❌ | — | Version pruning not implemented |
+| ListMicrovmImages | ❌ | — | — | Not implemented |
+| GetMicrovmImageBuild | ✅ | ❌ | — | Client exists, not surfaced in status |
+| ListMicrovmImageBuilds | ✅ | ❌ | — | Same |
+| ListManagedMicrovmImages | ✅ | ❌ | — | Client exists, not wired to CLI |
+| ListManagedMicrovmImageVersions | ✅ | ❌ | — | Same |
 
-## MicroVM Lifecycle Operations
+## Lambda Core API (Network Connectors)
 
-| API | Client method | Reconciler | CLI | Status |
-|-----|---------------|------------|-----|--------|
-| `RunMicrovm` | `DefaultMicroVMClient.runMicroVM()` | ✅ PENDING state | — | ✅ Complete |
-| `GetMicrovm` | `DefaultMicroVMClient.getMicroVM()` | ✅ poll + drift | — | ✅ Complete |
-| `SuspendMicrovm` | `DefaultMicroVMClient.suspendMicroVM()` | ✅ drift SUSPEND | `pause` | ✅ Complete |
-| `ResumeMicrovm` | `DefaultMicroVMClient.resumeMicroVM()` | ✅ drift RESUME | `resume` | ✅ Complete |
-| `TerminateMicrovm` | `DefaultMicroVMClient.terminateMicroVM()` | ✅ finalizer + TERMINATE drift | `delete` | ✅ Complete |
-| `ListMicrovms` | ✅ `DefaultMicroVMClient.listMicroVMs()` | ❌ | `list` (k8s only) | ⚠️ CLI lists CRs, not AWS state |
-| `CreateMicrovmAuthToken` | ✅ `DefaultMicroVMClient.createAuthToken()` | ❌ | ✅ `kubectl microvm token` | ✅ Complete |
-| `CreateMicrovmShellAuthToken` | ✅ `DefaultMicroVMClient.createShellAuthToken()` | ❌ | ✅ `kubectl microvm exec` | ✅ Complete |
-| `TagResource` | ✅ `DefaultMicroVMClient.tagResource()` | ✅ label sync on aligned | ❌ | ✅ Complete |
-| `UntagResource` | ✅ `DefaultMicroVMClient.untagResource()` | ❌ | ❌ | ⚠️ Implemented, not yet wired for removals |
-| `ListTags` | ✅ `DefaultMicroVMClient.listTags()` | ❌ | ❌ | ✅ Implemented |
+| Operation | Client | Reconciler | E2E on EKS |
+|-----------|--------|------------|------------|
+| CreateNetworkConnector | ✅ | ✅ | ✅ |
+| GetNetworkConnector | ✅ | ✅ poll | ✅ |
+| UpdateNetworkConnector | ✅ | ✅ | ❌ (not tested) |
+| DeleteNetworkConnector | ✅ | ✅ finalizer + protection | ✅ |
+| ListNetworkConnectors | ✅ | — | — |
 
----
+## Networking Modes (E2E verified)
 
-## MicroVMImage Operations
+| Mode | Tested | Result |
+|------|--------|--------|
+| No egress (default) | ✅ | Outbound blocked (503) |
+| Internet egress (AWS-managed) | ✅ | checkip.amazonaws.com reachable |
+| VPC egress (customer-managed) | ✅ | Connector ACTIVE, VM starts |
 
-| API | Client method | Reconciler | CLI | Status |
-|-----|---------------|------------|-----|--------|
-| `CreateMicrovmImage` | `MicroVMImageClient.createImage()` | ✅ first reconcile | `image create` | ✅ Complete |
-| `UpdateMicrovmImage` | `MicroVMImageClient.updateImage()` | ✅ generation advance | `image update` | ✅ Complete |
-| `GetMicrovmImage` | `MicroVMImageClient.getImage()` | ✅ poll image state | `image describe` | ✅ Complete |
-| `DeleteMicrovmImage` | `MicroVMImageClient.deleteImage()` | ✅ finalizer | `image delete` | ✅ Complete |
-| `GetMicrovmImageVersion` | `MicroVMImageClient.getImageVersion()` | ✅ poll version state | — | ✅ Complete |
-| `UpdateMicrovmImageVersion` | ✅ `MicroVMImageClient.activateVersion()` | ✅ auto-activates on SUCCESSFUL | — | ✅ Complete |
-| `DeleteMicrovmImageVersion` | ❌ not implemented | ❌ | — | ❌ Missing (version pruning) |
-| `ListMicrovmImageVersions` | ✅ `MicroVMImageClient.listVersions()` | ✅ populates `status.versions[]` | `image describe` | ✅ Complete |
-| `ListMicrovmImages` | ❌ not implemented | ❌ | `image list` (k8s only) | ⚠️ CLI lists CRs, not AWS state |
-| `GetMicrovmImageBuild` | ✅ `MicroVMImageClient.getLatestBuild()` | ❌ | — | ✅ Implemented |
-| `ListMicrovmImageBuilds` | ✅ (via `getLatestBuild`) | ❌ | — | ✅ Implemented |
+## Operator Extensions (beyond AWS API)
 
----
+| Feature | Code | Integration Tests | E2E on EKS | Notes |
+|---------|------|-------------------|------------|-------|
+| imageRef resolution by CR name | ✅ | ✅ | ✅ | RBAC-enforced, validates state |
+| networkRef resolution by CR name | ✅ | ✅ | ✅ | Validates connector ACTIVE |
+| MicroVMReplicaSet reconciler | ✅ | ✅ (5 tests) | ❌ | Scale up/down works in mocks |
+| Token REST endpoint (operator) | ✅ | ✅ (7 tests) | ❌ | TokenReview + SubjectAccessReview |
+| Pod mutating webhook (sidecar) | ✅ | ✅ (5 tests) | ❌ | Injects auth-agent container |
+| Validating webhook | ✅ (code) | ❌ | ❌ | Endpoints not working on cluster |
+| Mutating webhook (spec defaulting) | ✅ (code) | ❌ | ❌ | Not tested |
+| Drift detection | ✅ | ✅ (mocked) | ❌ | Detects AWS ≠ desired state |
+| kubectl microvm exec | ✅ (code) | ❌ | ❌ | Uses ShellAuthToken |
 
-## Managed Base Image Discovery
+## Not Implemented
 
-| API | Status | Notes |
-|-----|--------|-------|
-| `ListManagedMicrovmImages` | ❌ not implemented | Used in `setup-test-env.sh` via AWS CLI directly |
-| `ListManagedMicrovmImageVersions` | ❌ not implemented | — |
+| Feature | Priority | Notes |
+|---------|----------|-------|
+| DeleteMicrovmImageVersion | P2 | Version pruning |
+| ListMicrovmImages (AWS state) | P3 | CLI shows CRs only |
+| ListManagedMicrovmImages in CLI | P2 | `kubectl microvm image list-base` |
+| Build logs in CR status | P3 | GetMicrovmImageBuild not surfaced |
+| Tag sync | Blocked | API doesn't support microvm resource type |
+| Rolling update (ReplicaSet) | P2 | Design exists, not coded |
+| Cross-namespace image ref | P3 | MVP = same namespace only |
+| Krew manifest | P3 | Distribution |
+| macOS native CLI | P3 | Linux only for now |
 
----
+## E2E Test Coverage Summary
 
-## Priority Backlog
-
-### P0 — Blocks end-to-end testing
-
-**`CreateMicrovmAuthToken`**
-- Without this, clients cannot connect to a running MicroVM (all endpoints require JWE token)
-- Needed for: `kubectl microvm token` command, operator-surfaced connection info
-- `CreateMicrovmAuthTokenRequest` fields: `microvmIdentifier`, `expirationInMinutes`, `allowedPorts`
-- Response: `authToken` map (`X-aws-proxy-auth` header value)
-
-### P1 — Feature correctness
-
-**`UpdateMicrovmImageVersion` (activate/deactivate)**
-- `MicroVMImageSpec.autoActivate=true` is stored but never acted upon
-- After a version reaches `SUCCESSFUL`, the reconciler should call `UpdateMicrovmImageVersion --state ACTIVE`
-- Currently Lambda auto-activates new versions, so this may work without us, but explicit activation is required for controlled rollouts
-
-**`ListMicrovmImageVersions`**
-- `status.versions[]` is defined in the CRD but never populated
-- Needed for: `kubectl microvm image describe` showing version history
-
-### P2 — Operational completeness
-
-**Tag propagation (`TagResource` / `UntagResource`)**
-- Sync `MicroVM` CR `.metadata.labels` → AWS resource tags
-- Enables cost allocation, filtering by team/env in AWS console
-
-**`ListMicrovms`**
-- Currently `kubectl microvm list` only shows Kubernetes CRs
-- Should reconcile AWS state with CR state (detect orphaned MicroVMs)
-
-### P3 — Nice to have
-
-**`CreateMicrovmShellAuthToken`**
-- Powers `kubectl microvm exec` with native shell access
-- Lower priority — gRPC/HTTP access covers most use cases
-
-**`GetMicrovmImageBuild` / `ListMicrovmImageBuilds`**
-- Exposes build logs and build history in `kubectl microvm image describe`
-- Currently users must check CloudWatch directly
-
----
-
-## Summary
-
-| Category | Total | Implemented | Partial | Missing |
-|----------|-------|-------------|---------|---------|
-| MicroVM lifecycle | 11 | 10 | 1 | 0 |
-| MicroVMImage | 11 | 9 | 1 | 1 |
-| Base image discovery | 2 | 0 | 0 | 2 |
-| **Total** | **24** | **19** | **2** | **3** |
-
-## Remaining gaps
-
-- `DeleteMicrovmImageVersion` — version pruning (low priority)
-- `ListManagedMicrovmImages` / `ListManagedMicrovmImageVersions` — base image discovery (used via CLI directly)
-- `UntagResource` tag removal not yet wired to reconciler (tags added but never removed)
+| Area | Tested | Not Tested |
+|------|--------|------------|
+| MicroVMImage lifecycle | create, build, activate, delete | update (new version) |
+| MicroVM lifecycle | run, terminate | suspend, resume |
+| Networking | all 3 egress modes | network update, VPC→private target |
+| Auth | token --direct + curl | token via operator, sidecar, exec |
+| Webhooks | — | validating, mutating |
+| ReplicaSet | — | scale up/down on real cluster |
