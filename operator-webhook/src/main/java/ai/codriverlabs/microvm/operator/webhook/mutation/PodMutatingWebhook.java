@@ -9,6 +9,7 @@ import io.fabric8.kubernetes.api.model.admission.v1.AdmissionResponse;
 import io.fabric8.kubernetes.api.model.admission.v1.AdmissionReview;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -47,6 +48,7 @@ public class PodMutatingWebhook {
     public ObjectMapper mapper;
 
     @POST
+    @RunOnVirtualThread
     public AdmissionReview mutate(AdmissionReview review) {
         AdmissionRequest req = review.getRequest();
         AdmissionResponse resp = new AdmissionResponse();

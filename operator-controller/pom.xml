@@ -22,6 +22,15 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Webhook handlers — validates + mutates MicroVM/pod admission requests.
+             Co-located in the same Quarkus app/pod for simplicity at GA scale (≤100 VMs).
+             Split into a separate Deployment for high-throughput scenarios (>100 VMs). -->
+        <dependency>
+            <groupId>ai.codriverlabs</groupId>
+            <artifactId>operator-webhook</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Generated AWS Lambda MicroVMs SDK client -->
         <dependency>
             <groupId>ai.codriverlabs</groupId>

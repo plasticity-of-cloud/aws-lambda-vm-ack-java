@@ -16,6 +16,7 @@ import org.jboss.logging.Logger;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import io.smallrye.common.annotation.RunOnVirtualThread;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -59,6 +60,7 @@ public class MicroVMTokenResource {
     }
 
     @POST
+    @RunOnVirtualThread
     public Response createToken(
             @PathParam("ns") String namespace,
             @PathParam("name") String vmName,

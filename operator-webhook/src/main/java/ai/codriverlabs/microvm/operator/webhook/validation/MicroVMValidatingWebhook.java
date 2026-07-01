@@ -10,6 +10,7 @@ import io.fabric8.kubernetes.api.model.admission.v1.AdmissionRequest;
 import io.fabric8.kubernetes.api.model.admission.v1.AdmissionResponse;
 import io.fabric8.kubernetes.api.model.admission.v1.AdmissionReview;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -96,6 +97,8 @@ public class MicroVMValidatingWebhook {
         }
     }
 
+    @POST
+    @RunOnVirtualThread
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public AdmissionReview validate(AdmissionReview review) {
