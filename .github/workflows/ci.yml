@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, 'feature/**' ]
+  workflow_dispatch:
+
+env:
+  MAVEN_OPTS: '-Xmx4g'
+
+jobs:
+  # ─── Tests ────────────────────────────────────────────────────────────────
+
+  test-jvm:
+    name: Test (JVM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - run: ./mvnw verify -pl operator-core,operator-controller,operator-webhook,operator-cli,operator-tests -am --batch-mode --no-transfer-progress
+
+  # ─── Native CLI binary (arm64) ────────────────────────────────────────────
+
+  native-cli:
+    name: Native CLI (arm64)
+    needs: test-jvm
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: mandrel
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+      - name: Build native CLI
+        run: |
+          ./mvnw install -pl operator-core,operator-aws-client,operator-aws-client-core,operator-controller -am -DskipTests --batch-mode --no-transfer-progress -q
+          ./mvnw package -pl operator-cli -Pnative -DskipTests --batch-mode --no-transfer-progress
+      - name: Verify binary
+        run: |
+          ls -lh operator-cli/target/*-runner
+          file operator-cli/target/*-runner
+
+  # ─── Container images (arm64) ─────────────────────────────────────────────
+
+  container-images:
+    name: ${{ matrix.image }} (arm64)
+    needs: test-jvm
+    strategy:
+      matrix:
+        include:
+          - image: kube-microvm-operator
+            dockerfile: Dockerfile
+          - image: microvm-auth-agent
+            dockerfile: Dockerfile.auth-agent
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compute image tag
+        id: tag
+        run: echo "value=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ steps.tag.outputs.value }}-arm64
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}-arm64
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}-arm64
