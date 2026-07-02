@@ -203,7 +203,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           # Quarkus Helm generates the chart with image tag and version baked in
-          ./mvnw -B -pl operator-core,operator-aws-client,operator-aws-client-core,operator-controller \
+          ./mvnw -B -pl operator-core,operator-aws-client,operator-aws-client-core,operator-webhook,operator-controller \
             package -DskipTests --no-transfer-progress \
             -Dquarkus.helm.version=${VERSION} \
             -Dquarkus.helm.create-tar-file=true \
