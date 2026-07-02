@@ -100,6 +100,21 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Jandex index required for Quarkus to discover CDI beans and
+                 JAX-RS endpoints in this JAR when used as a dependency. -->
+            <plugin>
+                <groupId>io.smallrye</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+                <version>3.2.2</version>
+                <executions>
+                    <execution>
+                        <id>make-index</id>
+                        <goals>
+                            <goal>jandex</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 

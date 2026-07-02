@@ -109,23 +109,28 @@ public class MicroVMValidatingWebhook {
         List<String> errors = new ArrayList<>();
 
         try {
-            // Deserialize the MicroVM object from the request
-            Object rawObject = request.getObject();
-            MicroVM microVM = objectMapper.convertValue(rawObject, MicroVM.class);
-            MicroVMSpec spec = microVM.getSpec();
+            String resource = request.getResource() != null ? request.getResource().getResource() : "";
 
-            if (spec == null) {
-                errors.add("spec is required");
-            } else {
-                validateMemory(spec, errors);
-                validateVcpus(spec, errors);
-                validateRuntime(spec, errors);
-                validateTimeout(spec, errors);
-                validateNetworkRef(spec, request.getNamespace(), errors);
-                validateClassName(spec, request.getNamespace(), errors);
+            // Only validate MicroVM spec fields for microvms — Images and Networks
+            // have their own validation handled by CRD schema.
+            if ("microvms".equals(resource)) {
+                Object rawObject = request.getObject();
+                MicroVM microVM = objectMapper.convertValue(rawObject, MicroVM.class);
+                MicroVMSpec spec = microVM.getSpec();
+
+                if (spec == null) {
+                    errors.add("spec is required");
+                } else {
+                    validateMemory(spec, errors);
+                    validateVcpus(spec, errors);
+                    validateRuntime(spec, errors);
+                    validateTimeout(spec, errors);
+                    validateNetworkRef(spec, request.getNamespace(), errors);
+                    validateClassName(spec, request.getNamespace(), errors);
+                }
             }
 
-            // Validate namespace permission
+            // Namespace permission + quota applies to all resource types
             validateNamespacePermission(request.getNamespace(), errors);
 
             // Validate namespace quota
@@ -165,7 +170,7 @@ public class MicroVMValidatingWebhook {
 
     void validateRuntime(MicroVMSpec spec, List<String> errors) {
         if (spec.getImageRef() == null) {
-            errors.add("spec.runtime is required");
+            errors.add("spec.imageRef is required");
             return;
         }
         // Runtime enum already validated by Jackson deserialization
