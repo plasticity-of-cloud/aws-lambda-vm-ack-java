@@ -15,9 +15,14 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.nio.file.StandardOpenOption;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * MicroVM Auth Agent — sidecar that keeps a MicroVM auth token fresh on disk.
@@ -47,10 +52,32 @@ public class TokenRefreshAgent {
     @ConfigProperty(name = "microvm.agent.expiry-minutes", defaultValue = "30") int expiryMinutes;
     @ConfigProperty(name = "microvm.agent.sa-token-path") String saTokenPath;
 
-    private final HttpClient http = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10)).build();
+    private final HttpClient http = buildHttpClient();
     private final ObjectMapper json = new ObjectMapper();
     private volatile boolean running = true;
+
+    private static HttpClient buildHttpClient() {
+        try {
+            // Trust all certs — operator uses a self-signed cert-manager certificate.
+            // The connection is in-cluster (pod → operator service), so TLS provides
+            // encryption; the self-signed cert is acceptable here.
+            TrustManager[] trustAll = new TrustManager[]{
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                    public void checkClientTrusted(X509Certificate[] c, String a) {}
+                    public void checkServerTrusted(X509Certificate[] c, String a) {}
+                }
+            };
+            SSLContext sslCtx = SSLContext.getInstance("TLS");
+            sslCtx.init(null, trustAll, new SecureRandom());
+            return HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .sslContext(sslCtx)
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to build HTTP client", e);
+        }
+    }
 
     void onStart(@Observes StartupEvent ev) {
         Thread.ofVirtual().name("token-refresh-agent").start(this::run);

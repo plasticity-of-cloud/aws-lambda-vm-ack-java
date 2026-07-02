@@ -159,13 +159,14 @@ public class PodMutatingWebhook {
         ObjectNode c = mapper.createObjectNode();
         c.put("name", SIDECAR_NAME);
         c.put("image", agentImage);
-        c.put("imagePullPolicy", "IfNotPresent");
+        c.put("imagePullPolicy", "Always");
 
         ArrayNode env = mapper.createArrayNode();
         env.add(envVar("MICROVM_NAME", vmName));
         env.add(envVar("MICROVM_NAMESPACE", namespace));
         env.add(envVar("MOUNT_PATH", mountPath));
         env.add(envVar("TOKEN_EXPIRY_MINUTES", expiryMinutes));
+        env.add(envVar("OPERATOR_URL", "https://kube-microvm-operator.kube-microvm.svc:443"));
         c.set("env", env);
 
         ArrayNode mounts = mapper.createArrayNode();
@@ -173,21 +174,16 @@ public class PodMutatingWebhook {
         tokenMnt.put("name", VOLUME_NAME);
         tokenMnt.put("mountPath", mountPath);
         mounts.add(tokenMnt);
-        ObjectNode saMnt = mapper.createObjectNode();
-        saMnt.put("name", "kube-api-access");
-        saMnt.put("mountPath", "/var/run/secrets/kubernetes.io/serviceaccount");
-        saMnt.put("readOnly", true);
-        mounts.add(saMnt);
         c.set("volumeMounts", mounts);
 
-        // Minimal resource requests
+        // Resource requests — sized for JVM mode; native mode uses much less
         ObjectNode resources = mapper.createObjectNode();
         ObjectNode requests = mapper.createObjectNode();
-        requests.put("cpu", "5m");
-        requests.put("memory", "16Mi");
+        requests.put("cpu", "50m");
+        requests.put("memory", "128Mi");
         ObjectNode limits = mapper.createObjectNode();
-        limits.put("cpu", "50m");
-        limits.put("memory", "32Mi");
+        limits.put("cpu", "200m");
+        limits.put("memory", "256Mi");
         resources.set("requests", requests);
         resources.set("limits", limits);
         c.set("resources", resources);
