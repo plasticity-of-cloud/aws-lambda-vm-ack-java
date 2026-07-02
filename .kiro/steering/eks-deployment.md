@@ -44,7 +44,28 @@ When deploying to the EKS test cluster during development:
 4. **Always use `imagePullPolicy: Always`** to ensure the latest image is pulled,
    even when reusing the same tag (e.g. `0.0.1-rc1`). This is set in application.properties.
 
-## Rationale
+## Avoiding Blocked Operations
+
+Any `kubectl delete` or `kubectl patch` that targets a CR with finalizers can block
+indefinitely if the operator is not running or not watching that namespace.
+
+**Always use `--timeout=30s` on delete operations:**
+
+```bash
+# Safe delete pattern — never blocks longer than 30s
+kubectl delete microvm my-vm -n default --force --grace-period=0 --timeout=30s 2>/dev/null || true
+
+# Safe finalizer removal + delete
+kubectl patch microvm my-vm -n default \
+  --type=json -p='[{"op":"remove","path":"/metadata/finalizers"}]' \
+  --request-timeout=10s 2>/dev/null || true
+kubectl delete microvm my-vm -n default --force --grace-period=0 --timeout=30s 2>/dev/null || true
+```
+
+**Rule**: All delete and patch operations in scripts, teardown steps, and
+development workflows must include `--timeout=30s` (or `--request-timeout=10s`
+for patch). Never issue a bare `kubectl delete` on a CR without a timeout.
+
 
 - Custom resources with finalizers cannot be deleted without a running operator.
   Always patch out finalizers before uninstalling the chart.
