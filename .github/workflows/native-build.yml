@@ -59,15 +59,15 @@ jobs:
       - name: Rename binary
         run: |
           BINARY=$(find operator-cli/target -name "*-runner" -type f | head -1)
-          cp "$BINARY" kubectl-microvm-linux-${{ matrix.arch }}
-          chmod +x kubectl-microvm-linux-${{ matrix.arch }}
-          file kubectl-microvm-linux-${{ matrix.arch }}
+          cp "$BINARY" microvm-linux-${{ matrix.arch }}
+          chmod +x microvm-linux-${{ matrix.arch }}
+          file microvm-linux-${{ matrix.arch }}
       - name: Smoke test
-        run: timeout 5 ./kubectl-microvm-linux-${{ matrix.arch }} --help || true
+        run: timeout 5 ./microvm-linux-${{ matrix.arch }} --help || true
       - uses: actions/upload-artifact@v4
         with:
-          name: kubectl-microvm-linux-${{ matrix.arch }}
-          path: kubectl-microvm-linux-${{ matrix.arch }}
+          name: microvm-linux-${{ matrix.arch }}
+          path: microvm-linux-${{ matrix.arch }}
           retention-days: 7
 
   # ─── Container images (per arch) ─────────────────────────────────────────
@@ -229,11 +229,11 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: kubectl-microvm-linux-amd64
+          name: microvm-linux-amd64
           path: dist/
       - uses: actions/download-artifact@v4
         with:
-          name: kubectl-microvm-linux-arm64
+          name: microvm-linux-arm64
           path: dist/
       - uses: actions/download-artifact@v4
         with:
@@ -243,19 +243,19 @@ jobs:
         working-directory: dist
         run: |
           # Individual .sha256 per artifact
-          for f in kubectl-microvm-linux-amd64 kubectl-microvm-linux-arm64 kube-microvm-operator-*.tar.gz; do
+          for f in microvm-linux-amd64 microvm-linux-arm64 kube-microvm-operator-*.tar.gz; do
             sha256sum "$f" > "$f.sha256"
           done
           # Combined checksums.sha256
-          sha256sum kubectl-microvm-linux-amd64 kubectl-microvm-linux-arm64 kube-microvm-operator-*.tar.gz > checksums.sha256
+          sha256sum microvm-linux-amd64 microvm-linux-arm64 kube-microvm-operator-*.tar.gz > checksums.sha256
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
-            dist/kubectl-microvm-linux-amd64
-            dist/kubectl-microvm-linux-amd64.sha256
-            dist/kubectl-microvm-linux-arm64
-            dist/kubectl-microvm-linux-arm64.sha256
+            dist/microvm-linux-amd64
+            dist/microvm-linux-amd64.sha256
+            dist/microvm-linux-arm64
+            dist/microvm-linux-arm64.sha256
             dist/kube-microvm-operator-*.tar.gz
             dist/kube-microvm-operator-*.tar.gz.sha256
             dist/checksums.sha256

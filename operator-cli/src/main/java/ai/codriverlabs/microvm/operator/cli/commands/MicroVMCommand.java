@@ -4,13 +4,14 @@ import io.quarkus.picocli.runtime.annotations.TopCommand;
 import picocli.CommandLine.Command;
 
 /**
- * Root command for the kubectl-microvm CLI plugin.
- * Provides subcommands for managing MicroVM resources.
+ * Root command for the microvm CLI.
+ * Installed as 'microvm' (primary) with a 'kubectl-microvm' symlink
+ * so both `microvm` and `kubectl microvm` work.
  */
 @TopCommand
 @Command(
-    name = "kubectl-microvm",
-    description = "CLI plugin for managing AWS Lambda MicroVMs on Kubernetes",
+    name = "microvm",
+    description = "CLI for managing AWS Lambda MicroVMs on Kubernetes",
     mixinStandardHelpOptions = true,
     version = "1.0.0-SNAPSHOT",
     subcommands = {

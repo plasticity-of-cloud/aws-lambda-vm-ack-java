@@ -102,6 +102,8 @@ terminated externally) and reconciles.
 
 | Feature | Notes |
 |---------|-------|
+| **CLI rename: `microvm` + `kubectl-microvm` symlink** | Fix shell completion interference. Design: `docs/design/cli-naming.md`. Branch: `feature/cli-rename-microvm` |
+| **Installer script (`install_kube_microvm.sh`)** | See design below. Branch: `feature/installer-script` |
 | **Namespace label selector** | Implement JOSDK label selector on all reconcilers — watch only `lambda.aws.amazon.com/manage-microvms=true` namespaces. See `docs/design/namespace-watching.md`. |
 | **User guide: Authentication** | Document token endpoint, RBAC setup, TLS, --direct vs operator flow |
 | `kubectl microvm exec` | Shell access via ShellAuthToken |
