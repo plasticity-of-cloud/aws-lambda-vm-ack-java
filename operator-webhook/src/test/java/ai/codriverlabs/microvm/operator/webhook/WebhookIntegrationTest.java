@@ -95,7 +95,7 @@ class WebhookIntegrationTest {
 
         List<String> errors = validator.validate(spec, "default");
         assertFalse(errors.isEmpty());
-        assertTrue(errors.stream().anyMatch(e -> e.contains("runtime")));
+        assertTrue(errors.stream().anyMatch(e -> e.contains("imageRef")));
     }
 
     @Test
