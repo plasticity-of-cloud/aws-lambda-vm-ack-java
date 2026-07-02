@@ -88,12 +88,25 @@ Operator redeployment (dev workflow):
 
 ## Namespace Watching
 
-The operator watches **all namespaces** by default (JOSDK default — no
-`namespaces` configured in `@ControllerConfiguration`).
+The operator watches **only namespaces labelled** with
+`lambda.aws.amazon.com/manage-microvms=true`. This is enforced at the watch
+level via JOSDK namespace label selector — unlabelled namespaces are completely
+ignored (no finalizers, no reconciliation, no stuck-delete risk).
 
-This means MicroVMs created in any namespace will be reconciled. The validating
-webhook enforces that a namespace must have the annotation
-`lambda.aws.amazon.com/manage-vms=true` before VMs can be created there.
+See `docs/design/namespace-watching.md` for full design.
+
+**Label a namespace to enable MicroVMs:**
+```bash
+kubectl label namespace my-team lambda.aws.amazon.com/manage-microvms=true
+```
+
+**Remove management (stop watching):**
+```bash
+kubectl label namespace my-team lambda.aws.amazon.com/manage-microvms-
+# Terminate all VMs in that namespace first!
+```
+
+**Default at install**: `default` namespace is labelled automatically by Helm.
 
 **To restrict which namespaces the operator watches**, configure in
 `application.properties`:
@@ -102,7 +115,7 @@ webhook enforces that a namespace must have the annotation
 # Watch specific namespaces only (comma-separated)
 quarkus.operator-sdk.namespaces=default,production,staging
 
-# Or watch all (current default — explicit form)
+# Or watch all (not recommended — use label selector instead)
 quarkus.operator-sdk.namespaces=*
 ```
 

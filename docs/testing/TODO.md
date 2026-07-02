@@ -102,6 +102,7 @@ terminated externally) and reconciles.
 
 | Feature | Notes |
 |---------|-------|
+| **Namespace label selector** | Implement JOSDK label selector on all reconcilers — watch only `lambda.aws.amazon.com/manage-microvms=true` namespaces. See `docs/design/namespace-watching.md`. |
 | **User guide: Authentication** | Document token endpoint, RBAC setup, TLS, --direct vs operator flow |
 | `kubectl microvm exec` | Shell access via ShellAuthToken |
 | ReplicaSet rolling update | Template change → gradual replacement |

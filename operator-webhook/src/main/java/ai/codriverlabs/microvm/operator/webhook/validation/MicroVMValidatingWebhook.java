@@ -38,7 +38,7 @@ public class MicroVMValidatingWebhook {
     private static final int MAX_VCPUS = 6;
     private static final int MIN_TIMEOUT = 1;
     private static final int MAX_TIMEOUT = 900;
-    private static final String MANAGE_VMS_ANNOTATION = "lambda.aws.amazon.com/manage-vms";
+    private static final String MANAGE_VMS_ANNOTATION = "lambda.aws.amazon.com/manage-microvms";
     private static final String QUOTA_NAME = "count/microvms.lambda.aws.amazon.com";
 
     private final KubernetesClient kubernetesClient;
