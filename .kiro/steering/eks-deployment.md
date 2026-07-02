@@ -66,6 +66,50 @@ kubectl delete microvm my-vm -n default --force --grace-period=0 --timeout=30s 2
 development workflows must include `--timeout=30s` (or `--request-timeout=10s`
 for patch). Never issue a bare `kubectl delete` on a CR without a timeout.
 
+## When to Delete the ValidatingWebhookConfiguration
+
+**During operator redeployment only** — not during normal VM teardown.
+
+The webhook has `FailurePolicy: Fail`. When the operator pod is down (between
+`helm uninstall` and `helm install`), any CR admission request goes to the
+webhook, gets no response, and fails. This blocks CR deletes and patches.
+
+```
+Normal VM teardown (operator running):
+  → No need to delete webhook config
+  → Set desiredState: Terminated → delete MicroVM → delete MicroVMImage
+
+Operator redeployment (dev workflow):
+  → Delete webhook configs first (operator going down)
+  → Patch out finalizers + delete CRs
+  → helm uninstall
+  → helm install
+```
+
+## Namespace Watching
+
+The operator watches **all namespaces** by default (JOSDK default — no
+`namespaces` configured in `@ControllerConfiguration`).
+
+This means MicroVMs created in any namespace will be reconciled. The validating
+webhook enforces that a namespace must have the annotation
+`lambda.aws.amazon.com/manage-vms=true` before VMs can be created there.
+
+**To restrict which namespaces the operator watches**, configure in
+`application.properties`:
+
+```properties
+# Watch specific namespaces only (comma-separated)
+quarkus.operator-sdk.namespaces=default,production,staging
+
+# Or watch all (current default — explicit form)
+quarkus.operator-sdk.namespaces=*
+```
+
+For multi-tenant clusters, restricting namespaces reduces the operator's blast
+radius and limits the RBAC surface. For single-tenant or dev clusters, all-
+namespace watching is fine.
+
 
 - Custom resources with finalizers cannot be deleted without a running operator.
   Always patch out finalizers before uninstalling the chart.
